@@ -261,6 +261,8 @@ let defensiveWall=[];
 let setPlayRunner=null,setPlayReady=false;
 let runUpDistance=0,runUpActive=false;
 let badPassIndicator=null,badPassTimer=0;
+let looseBallChase={A:null,B:null};
+let looseBallChaseTimer=0;
 
 // Tactical variables
 let formationA="4-4-2",formationB="4-4-2";
@@ -1434,6 +1436,7 @@ function calculatePassSafety(passer,receiver,opponents){
 
 function handlePossession(){
     let all=[...playersA,...playersB];
+    let nonKeepers=all.filter(p=>p.role!=="GK");
     
     // Position reset timer
     if(resetPositionTimer>0){
@@ -1535,6 +1538,8 @@ function handlePossession(){
     }else{
         let ballSpd=Math.hypot(ball.vx,ball.vy);
         
+        if(looseBallChaseTimer>0)looseBallChaseTimer--;
+        
         if(ballSpd>1.2){
             all.forEach(p=>{
                 let d=Math.hypot(p.x-ball.x,p.y-ball.y);
@@ -1561,12 +1566,31 @@ function handlePossession(){
                 }
             });
         }else{
+            if(looseBallChaseTimer<=0){
+                let sorted=nonKeepers
+                    .map(p=>({player:p,dist:Math.hypot(p.x-ball.x,p.y-ball.y)}))
+                    .sort((a,b)=>a.dist-b.dist);
+                looseBallChase={
+                    A:sorted.find(s=>s.player.team==="A")?.player||null,
+                    B:sorted.find(s=>s.player.team==="B")?.player||null
+                };
+                looseBallChaseTimer=18;
+            }
+            
             all.forEach(p=>{
                 let d=Math.hypot(p.x-ball.x,p.y-ball.y);
-                if(d<13){
+                if((looseBallChase.A===p||looseBallChase.B===p)&&d<200){
+                    let leadX=ball.x+ball.vx*8;
+                    let leadY=ball.y+ball.vy*8;
+                    p.move(leadX,leadY);
+                    if(d<120&&Math.random()<0.55)p.activateSprint();
+                }
+                
+                if(d<15){
                     controllingPlayer=p;
                     lastTeam=p.team;
                     lastTouch=p;
+                    looseBallChase={A:null,B:null};
                     if(setPlay){
                         setPlay=null;
                         setPlayRunner=null;
