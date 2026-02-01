@@ -528,9 +528,13 @@ class Player{
                         ty=gy+(Math.random()-0.5)*180;
                     }
                 }else{
+                    let upperOpps=opps.filter(o=>Math.abs(o.x-this.x)<220&&o.y<this.y).length;
+                    let lowerOpps=opps.filter(o=>Math.abs(o.x-this.x)<220&&o.y>this.y).length;
+                    let openBias=(upperOpps-lowerOpps)*25;
+                    openBias=Math.max(-90,Math.min(90,openBias));
                     tx=gx;
-                    ty=gy+(Math.random()-0.5)*150;
-                    if(minD>130&&Math.random()<0.4)this.activateSprint();
+                    ty=gy+openBias+(Math.random()-0.5)*140;
+                    if(minD>130&&Math.random()<0.25)this.activateSprint();
                 }
             }else{
                 // Teammates positioning - CẢI THIỆN ĐỂ GIÃN RA
@@ -1025,6 +1029,75 @@ function createDefensiveWall(){
     setTimeout(()=>{defensiveWall=[];},4000);
 }
 
+function getGoalX(team){
+    return team==="A"?FIELD_WIDTH:0;
+}
+
+function getGoalCenterY(){
+    return FIELD_HEIGHT/2;
+}
+
+function calculateShotAngle(x,y,team){
+    let goalX=getGoalX(team);
+    let angTop=Math.atan2(GOAL_Y_MIN-y,goalX-x);
+    let angBottom=Math.atan2(GOAL_Y_MAX-y,goalX-x);
+    let shotAngle=Math.abs(angBottom-angTop);
+    if(shotAngle>Math.PI)shotAngle=2*Math.PI-shotAngle;
+    return shotAngle;
+}
+
+function countBlockersToGoal(player,opponents){
+    let goalX=getGoalX(player.team);
+    let goalY=getGoalCenterY();
+    let toGoalAngle=Math.atan2(goalY-ball.y,goalX-ball.x);
+    let distToGoal=Math.hypot(goalX-ball.x,goalY-ball.y);
+    let blockers=0;
+    
+    for(let opp of opponents){
+        if(opp.role==="GK")continue;
+        let dx=opp.x-ball.x;
+        let dy=opp.y-ball.y;
+        let oppDist=Math.hypot(dx,dy);
+        if(oppDist>distToGoal||oppDist>420)continue;
+        
+        let oppAngle=Math.atan2(dy,dx);
+        let angleDiff=Math.abs(oppAngle-toGoalAngle);
+        if(angleDiff>Math.PI)angleDiff=2*Math.PI-angleDiff;
+        
+        if(angleDiff<Math.PI/10){
+            let perpDist=oppDist*Math.sin(angleDiff);
+            if(perpDist<45)blockers++;
+        }
+    }
+    
+    return blockers;
+}
+
+function calculateShotQuality(player,underPressure){
+    let goalX=getGoalX(player.team);
+    let goalY=getGoalCenterY();
+    let distToGoal=Math.hypot(goalX-ball.x,goalY-ball.y);
+    let shotAngle=calculateShotAngle(ball.x,ball.y,player.team);
+    let angleScore=Math.min(shotAngle/(Math.PI/2),1);
+    let distScore=Math.max(0,1-(distToGoal-140)/420);
+    let pressureScore=underPressure?0.6:1;
+    let blockers=countBlockersToGoal(player,player.team==="A"?playersB:playersA);
+    let blockerPenalty=Math.max(0,1-blockers*0.25);
+    let skillBonus=0.4+player.skill*0.6;
+    
+    return angleScore*distScore*pressureScore*blockerPenalty*skillBonus;
+}
+
+function calculateReceiverSpace(receiver,opponents){
+    let minDist=Infinity;
+    opponents.forEach(opp=>{
+        if(opp.role==="GK")return;
+        let d=Math.hypot(opp.x-receiver.x,opp.y-receiver.y);
+        if(d<minDist)minDist=d;
+    });
+    return minDist;
+}
+
 // PHÂN TÍCH TÌNH HUỐNG THÔNG MINH - Quyết định khi nào nên chuyền
 function analyzeSituation(player){
     if(!player)return {shouldPass:false,shouldShoot:false,isWingPlay:false};
@@ -1050,7 +1123,7 @@ function analyzeSituation(player){
     let urgentPressure=minOppDist<50||threateningOpps>=3;
     
     // 2. PHÂN TÍCH VỊ TRÍ
-    let goalX=player.team==="A"?FIELD_WIDTH:0;
+    let goalX=getGoalX(player.team);
     let distToGoal=Math.hypot(goalX-ball.x,FIELD_HEIGHT/2-ball.y);
     let inShootingZone=(player.team==="A"&&ball.x>FIELD_WIDTH-350)||(player.team==="B"&&ball.x<350);
     let inDangerZone=(player.team==="A"&&ball.x<300)||(player.team==="B"&&ball.x>FIELD_WIDTH-300);
@@ -1062,6 +1135,9 @@ function analyzeSituation(player){
     let shouldPass=false;
     let shouldShoot=false;
     let isWingPlay=false;
+    let shouldClear=false;
+    let shotQuality=calculateShotQuality(player,underPressure);
+    let hasWideAngle=calculateShotAngle(ball.x,ball.y,player.team)>0.35;
     
     // Tình huống BẮT BUỘC PHẢI CHUYỀN
     if(urgentPressure&&bestPassOption.safety>0.6){
@@ -1072,24 +1148,34 @@ function analyzeSituation(player){
         shouldPass=true;
     }
     // Trong vùng nguy hiểm (gần khung thành mình) - phải thoát bóng
-    else if(inDangerZone&&bestPassOption.available&&Math.random()<0.5){
+    else if(inDangerZone&&bestPassOption.available&&bestPassOption.safety>0.4){
         shouldPass=true;
+    }
+    // Bị áp lực cao ở khu vực nguy hiểm - phá bóng lên
+    else if(inDangerZone&&!bestPassOption.available&&urgentPressure){
+        shouldPass=true;
+        shouldClear=true;
     }
     // Có cơ hội đảo cánh
     else if(player.wingPlay&&bestPassOption.isWingOpportunity&&player.stamina>50&&Math.random()<0.4){
         shouldPass=true;
         isWingPlay=true;
     }
+    // Đường biên hoặc góc hẹp, ưu tiên căng ngang/chọc khe
+    else if(hasWideAngle===false&&bestPassOption.available&&Math.random()<0.6){
+        shouldPass=true;
+        isWingPlay=player.wingPlay;
+    }
     // Có đồng đội ở vị trí tốt hơn để ghi bàn
     else if(bestPassOption.betterShootingPos&&Math.random()<0.45){
         shouldPass=true;
     }
     // Sút khi ở vị trí tốt và không bị áp lực
-    else if(inShootingZone&&!underPressure&&distToGoal<450&&player.stamina>30&&Math.random()<0.08){
+    else if(inShootingZone&&shotQuality>0.45&&player.stamina>30&&Math.random()<shotQuality*0.6){
         shouldShoot=true;
     }
     // Chuyền ngẫu nhiên thấp khi không có tình huống đặc biệt
-    else if(!underPressure&&bestPassOption.available&&Math.random()<0.015){
+    else if(!underPressure&&bestPassOption.available&&Math.random()<0.02){
         shouldPass=true;
     }
     
@@ -1097,7 +1183,11 @@ function analyzeSituation(player){
         shouldPass:shouldPass,
         shouldShoot:shouldShoot,
         isWingPlay:isWingPlay,
-        passTarget:bestPassOption.target
+        passTarget:bestPassOption.target,
+        underPressure:underPressure,
+        inDangerZone:inDangerZone,
+        shotQuality:shotQuality,
+        clearance:shouldClear
     };
 }
 
@@ -1123,24 +1213,26 @@ function findBestPassTarget(player,mates,opps,underPressure){
         
         // TÍNH AN TOÀN CỦA ĐƯỜNG CHUYỀN
         let safety=calculatePassSafety(player,mate,opps);
-        if(safety<0.3)continue; // Đường chuyền quá nguy hiểm
+        if(safety<0.25)continue; // Đường chuyền quá nguy hiểm
         
         // ĐÁNH GIÁ VỊ TRÍ CỦA ĐỒNG ĐỘI
         let mateDistToGoal=Math.abs(mate.x-goalX);
         let isForward=mateDistToGoal<playerDistToGoal;
         let isWing=mate.wingPlay||(mate.y<150||mate.y>FIELD_HEIGHT-150);
+        let spaceScore=Math.min(calculateReceiverSpace(mate,opps)/140,1);
         
         // TÍNH ĐIỂM
         let score=0;
         
         // Ưu tiên đồng đội ở vị trí tiến công hơn
-        if(isForward)score+=150;
+        if(isForward)score+=130;
         
         // Ưu tiên tiền đạo
-        if(mate.role==="FW")score+=100;
+        if(mate.role==="FW")score+=95;
         
         // An toàn đường chuyền rất quan trọng
         score+=safety*200;
+        score+=spaceScore*120;
         
         // Khoảng cách hợp lý
         if(dist>100&&dist<300)score+=80;
@@ -1149,6 +1241,7 @@ function findBestPassTarget(player,mates,opps,underPressure){
         if(underPressure){
             if(dist<180)score+=100;
             score+=safety*150; // Nhân đôi trọng số an toàn
+            if(!isForward&&safety>0.55)score+=80; // Ưu tiên nhả bóng an toàn
         }else{
             // Không bị áp lực thì ưu tiên tấn công
             if(isForward)score+=100;
@@ -1331,7 +1424,7 @@ function handlePossession(){
                     wingPlayActive=true;
                     wingPlayTimer=180;
                 }
-                pass(situation.isWingPlay,situation.passTarget);
+                pass(situation.isWingPlay,situation.passTarget,situation);
             }else if(situation.shouldShoot){
                 shoot();
             }
@@ -1386,20 +1479,33 @@ function shoot(){
     if(!controllingPlayer||controllingPlayer.stamina<20)return;
     
     let tx=controllingPlayer.team==="A"?FIELD_WIDTH:0;
-    let ty=FIELD_HEIGHT/2+(Math.random()-0.5)*200;
+    let ty=FIELD_HEIGHT/2+(Math.random()-0.5)*160;
+    let opps=controllingPlayer.team==="A"?playersB:playersA;
+    let nearestDist=Infinity;
+    opps.forEach(o=>{
+        if(o.role==="GK")return;
+        let d=Math.hypot(o.x-controllingPlayer.x,o.y-controllingPlayer.y);
+        if(d<nearestDist)nearestDist=d;
+    });
+    let underPressure=nearestDist<80;
+    let shotQuality=calculateShotQuality(controllingPlayer,underPressure);
+    
+    if(shotQuality>0.65&&Math.random()<0.55){
+        ty=Math.random()<0.5?GOAL_Y_MIN+35:GOAL_Y_MAX-35;
+    }
     
     let acc=controllingPlayer.skill;
-    ty+=(Math.random()-0.5)*120*(1-acc);
+    ty+=(Math.random()-0.5)*90*(1-acc);
     
     let dx=tx-ball.x;
     let dy=ty-ball.y;
     let norm=Math.hypot(dx,dy);
     
-    let basePower=7.5;
-    let skillBonus=controllingPlayer.skill*2.8;
-    let staminaBonus=controllingPlayer.stamina/controllingPlayer.maxStamina*2;
-    let distBonus=Math.abs(controllingPlayer.team==="A"?ball.x-FIELD_WIDTH:ball.x)/60;
-    let power=basePower+Math.random()*4.5+skillBonus+staminaBonus+distBonus;
+    let basePower=7.2;
+    let skillBonus=controllingPlayer.skill*2.6;
+    let staminaBonus=controllingPlayer.stamina/controllingPlayer.maxStamina*1.6;
+    let distBonus=Math.abs(controllingPlayer.team==="A"?ball.x-FIELD_WIDTH:ball.x)/75;
+    let power=basePower+Math.random()*3.5+skillBonus+staminaBonus+distBonus;
     
     if(Math.random()<controllingPlayer.skill*0.35){
         let curve=(Math.random()-0.5)*0.6;
@@ -1415,7 +1521,7 @@ function shoot(){
     controllingPlayer=null;
 }
 
-function pass(isWingPass,preferredTarget){
+function pass(isWingPass,preferredTarget,passContext){
     if(!controllingPlayer||controllingPlayer.stamina<10)return;
     
     let mates=controllingPlayer.team==="A"?playersA.filter(p=>p.role!=="GK"):playersB.filter(p=>p.role!=="GK");
@@ -1511,13 +1617,28 @@ function pass(isWingPass,preferredTarget){
     let dy=predictY-ball.y;
     let norm=Math.hypot(dx,dy);
     
-    let basePower=4.5;
-    let skillBonus=controllingPlayer.skill*2.2;
-    let distFactor=Math.min(norm/120,2.5);
-    let power=basePower+Math.random()*3.5+skillBonus+distFactor;
+    let basePower=4.6;
+    let skillBonus=controllingPlayer.skill*2.1;
+    let distFactor=Math.min(norm/120,2.6);
+    let power=basePower+Math.random()*3.2+skillBonus+distFactor;
+    let pressureFactor=passContext&&passContext.underPressure?1.4:1;
+    let fatigueFactor=1-controllingPlayer.stamina/controllingPlayer.maxStamina;
+    let badPassChance=0.008+pressureFactor*0.012+fatigueFactor*0.02;
+    
+    if(passContext&&passContext.clearance){
+        let clearX=controllingPlayer.team==="A"?FIELD_WIDTH*0.65:FIELD_WIDTH*0.35;
+        let clearY=controllingPlayer.y+(Math.random()-0.5)*320;
+        predictX=Math.min(FIELD_WIDTH-40,Math.max(40,clearX));
+        predictY=Math.min(FIELD_HEIGHT-40,Math.max(40,clearY));
+        dx=predictX-ball.x;
+        dy=predictY-ball.y;
+        norm=Math.hypot(dx,dy);
+        power=8.5+Math.random()*2.8+controllingPlayer.skill*1.4;
+        badPassChance*=0.6;
+    }
     
     // Cơ hội chuyền tệ giảm xuống
-    if(Math.random()<0.015){
+    if(Math.random()<badPassChance){
         let angleError=(Math.random()-0.5)*Math.PI/1.3;
         let currentAngle=Math.atan2(dy,dx);
         let newAngle=currentAngle+angleError;
