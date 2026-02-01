@@ -1,0 +1,2234 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Giải Đấu Bóng Đá Chuyên Nghiệp 11v11</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+    background:#0a0a0a;
+    color:#fff;
+    font-family:'Segoe UI',Arial,sans-serif;
+    display:flex;
+    padding:15px;
+    gap:12px;
+    min-height:100vh;
+}
+#leftPanel,#rightPanel{
+    width:280px;
+    background:linear-gradient(145deg,#1a1a1a,#242424);
+    padding:12px;
+    border-radius:12px;
+    border:2px solid #333;
+    max-height:95vh;
+    overflow-y:auto;
+    box-shadow:0 4px 20px rgba(0,0,0,0.5);
+}
+#centerPanel{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+}
+h1{
+    font-size:24px;
+    margin-bottom:12px;
+    background:linear-gradient(90deg,#4CAF50,#45a049);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+}
+h3{
+    color:#4CAF50;
+    margin:12px 0 8px;
+    font-size:15px;
+    border-bottom:2px solid #4CAF50;
+    padding-bottom:4px;
+}
+#ui{
+    background:#1a1a1a;
+    padding:12px;
+    border-radius:10px;
+    margin-bottom:12px;
+    border:1px solid #333;
+}
+input[type="number"]{
+    padding:6px;
+    background:#2a2a2a;
+    border:1px solid #444;
+    color:#fff;
+    border-radius:5px;
+    width:70px;
+}
+button{
+    padding:8px 15px;
+    margin:4px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:bold;
+    font-size:13px;
+    background:linear-gradient(145deg,#4CAF50,#45a049);
+    color:#fff;
+    transition:all 0.3s;
+    box-shadow:0 2px 8px rgba(76,175,80,0.3);
+}
+button:hover{
+    transform:translateY(-2px);
+    box-shadow:0 4px 12px rgba(76,175,80,0.5);
+}
+button:active{
+    transform:translateY(0);
+}
+canvas{
+    background:linear-gradient(180deg,#1e7d32,#1a6929);
+    border:4px solid #fff;
+    border-radius:8px;
+    box-shadow:0 6px 25px rgba(0,0,0,0.6);
+}
+#scoreboard{
+    font-size:20px;
+    margin-top:12px;
+    font-weight:bold;
+    background:#1a1a1a;
+    padding:10px 20px;
+    border-radius:10px;
+    border:2px solid #4CAF50;
+    box-shadow:0 2px 10px rgba(76,175,80,0.3);
+}
+#teamSetup{
+    display:none;
+    background:#1a1a1a;
+    padding:15px;
+    border-radius:10px;
+    margin:12px 0;
+    max-height:400px;
+    overflow-y:auto;
+}
+.team-input{
+    background:#2a2a2a;
+    padding:10px;
+    margin:6px 0;
+    border-radius:6px;
+    border:1px solid #444;
+}
+.team-input input[type="text"]{
+    padding:5px;
+    background:#333;
+    border:1px solid #555;
+    color:#fff;
+    border-radius:4px;
+    margin:0 4px;
+}
+.team-input input[type="color"]{
+    margin:0 4px;
+    cursor:pointer;
+}
+.match-item{
+    background:#2a2a2a;
+    padding:8px;
+    margin:5px 0;
+    border-radius:6px;
+    border-left:4px solid;
+    font-size:12px;
+    transition:all 0.2s;
+}
+.match-item:hover{
+    background:#333;
+    transform:translateX(3px);
+}
+.match-winner{
+    color:#4CAF50;
+    font-weight:bold;
+}
+.match-loser{
+    color:#888;
+}
+.group-header{
+    background:linear-gradient(90deg,#ff8c00,#ff6b00);
+    color:#fff;
+    padding:6px;
+    border-radius:6px;
+    font-weight:bold;
+    margin:10px 0 5px;
+    text-align:center;
+    font-size:13px;
+}
+.knockout-header{
+    background:linear-gradient(90deg,#ff4444,#cc0000);
+    color:#fff;
+    padding:6px;
+    border-radius:6px;
+    font-weight:bold;
+    margin:10px 0 5px;
+    text-align:center;
+    font-size:13px;
+}
+.upcoming-match{
+    background:linear-gradient(145deg,#1a4d1a,#2a5d2a);
+    padding:10px;
+    margin:6px 0;
+    border-radius:8px;
+    border:2px solid #4CAF50;
+    font-weight:bold;
+    animation:pulse 2s infinite;
+}
+@keyframes pulse{
+    0%,100%{box-shadow:0 0 5px rgba(76,175,80,0.5);}
+    50%{box-shadow:0 0 15px rgba(76,175,80,0.8);}
+}
+.tactics-info{
+    background:#1a1a1a;
+    padding:8px;
+    margin:6px 0;
+    border-radius:6px;
+    border:1px solid #4CAF50;
+    font-size:11px;
+}
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:#1a1a1a;}
+::-webkit-scrollbar-thumb{background:#4CAF50;border-radius:4px;}
+::-webkit-scrollbar-thumb:hover{background:#45a049;}
+</style>
+</head>
+<body>
+<div id="leftPanel">
+    <h3>📜 Lịch Sử Trận Đấu</h3>
+    <div id="matchHistory"></div>
+    <h3>📊 Chiến Thuật</h3>
+    <div id="tacticsInfo"></div>
+</div>
+
+<div id="centerPanel">
+<h1>⚽ GIẢI ĐẤU BÓNG ĐÁ CHUYÊN NGHIỆP 11v11</h1>
+<div id="ui">
+    <label>Số đội (4-32): </label>
+    <input type="number" id="teamCount" min="4" max="32" value="16">
+    <button onclick="setupTeams()">🎨 Tạo Đội</button>
+    <button onclick="startTournament()">🏆 Bắt Đầu Giải</button>
+    <button id="continueBtn" onclick="startNextMatch()" style="display:none">▶️ Trận Tiếp</button>
+</div>
+<div id="teamSetup"></div>
+<canvas id="gameCanvas" width="1400" height="800"></canvas>
+<div id="scoreboard">⏱ 0:00 | 0 - 0</div>
+</div>
+
+<div id="rightPanel">
+    <h3>📋 Lịch Thi Đấu</h3>
+    <div id="upcomingMatches"></div>
+</div>
+
+<script>
+const canvas=document.getElementById("gameCanvas");
+const ctx=canvas.getContext("2d");
+
+// Field dimensions - Sân chuẩn FIFA
+const FIELD_WIDTH=1400;
+const FIELD_HEIGHT=800;
+const GOAL_Y_MIN=300;
+const GOAL_Y_MAX=500;
+const GOAL_WIDTH=200;
+
+// Penalty boxes - 2 hình chữ nhật chuẩn FIFA
+const PENALTY_BOX_LARGE_WIDTH=220;
+const PENALTY_BOX_LARGE_HEIGHT=520;
+const PENALTY_BOX_SMALL_WIDTH=80;
+const PENALTY_BOX_SMALL_HEIGHT=280;
+const PENALTY_BOX_TOP=FIELD_HEIGHT/2-PENALTY_BOX_LARGE_HEIGHT/2;
+
+// Tournament structure
+let teams=[];
+let groups=[];
+let currentRound="group";
+let matchHistory=[];
+let upcomingSchedule=[];
+
+// Current match
+let teamA,teamB;
+let scoreA=0,scoreB=0;
+let minute=0,second=0;
+let halfTime=360;
+let extraTime=240;
+let matchState="STOP";
+let penaltyA=0,penaltyB=0,penaltyRound=0,penaltyTurn="A";
+let resetPositionTimer=0;
+let isResettingPositions=false;
+
+// Game objects
+let playersA=[],playersB=[],ball;
+let controllingPlayer=null,lastTouch=null,lastTeam=null;
+let setPlay=null,setPos={x:0,y:0},setPlayTeam=null;
+let defensiveWall=[];
+let setPlayRunner=null,setPlayReady=false;
+let runUpDistance=0,runUpActive=false;
+let badPassIndicator=null,badPassTimer=0;
+
+// Tactical variables
+let formationA="4-4-2",formationB="4-4-2";
+let wingPlayActive=false,wingPlayTimer=0;
+
+function randomColor(){
+    return `hsl(${Math.random()*360},75%,55%)`;
+}
+
+function setupTeams(){
+    let count=parseInt(document.getElementById("teamCount").value);
+    if(count<4||count>32){
+        alert("Số đội phải từ 4-32!");
+        return;
+    }
+    
+    teams=[];
+    let setup=document.getElementById("teamSetup");
+    setup.innerHTML="<h3>Tạo Đội Bóng</h3>";
+    setup.style.display="block";
+    
+    for(let i=0;i<count;i++){
+        let div=document.createElement("div");
+        div.className="team-input";
+        div.innerHTML=`
+            <label>Đội ${i+1}:</label>
+            <input type="text" id="name${i}" value="Team ${String.fromCharCode(65+i)}" placeholder="Tên đội">
+            <input type="color" id="color${i}" value="${randomColor()}">
+        `;
+        setup.appendChild(div);
+    }
+    
+    let btn=document.createElement("button");
+    btn.textContent="💾 Lưu Và Tiếp Tục";
+    btn.onclick=saveTeams;
+    setup.appendChild(btn);
+}
+
+function saveTeams(){
+    let count=parseInt(document.getElementById("teamCount").value);
+    teams=[];
+    
+    for(let i=0;i<count;i++){
+        teams.push({
+            name:document.getElementById(`name${i}`).value,
+            color:document.getElementById(`color${i}`).value,
+            speed:30+Math.random()*10,
+            skill:0.55+Math.random()*0.45,
+            wins:0,
+            draws:0,
+            losses:0,
+            goalsFor:0,
+            goalsAgainst:0,
+            points:0,
+            formation:Math.random()>0.5?"4-4-2":"4-3-3"
+        });
+    }
+    
+    document.getElementById("teamSetup").style.display="none";
+    alert(`✅ Đã tạo ${count} đội thành công!`);
+}
+
+class Player{
+    constructor(x,y,color,speed,team,role,position,skill){
+        this.x=x;
+        this.y=y;
+        this.homeX=x;
+        this.homeY=y;
+        this.color=color;
+        this.baseSpeed=speed*0.018;
+        this.speed=this.baseSpeed;
+        this.team=team;
+        this.role=role;
+        this.position=position;
+        this.stamina=150;
+        this.maxStamina=150;
+        this.skill=skill;
+        this.passAccuracy=skill*0.85+0.15;
+        
+        // Mechanics
+        this.sprintActive=false;
+        this.sprintTimer=0;
+        this.sprintCooldown=0;
+        
+        // LONG SPRINT - BỨT TỐC DÀI
+        this.longSprintActive=false;
+        this.longSprintTimer=0;
+        this.longSprintCooldown=0;
+        
+        this.tackling=false;
+        this.tackleTimer=0;
+        this.tackleCooldown=0;
+        this.isRecovering=false;
+        this.recoverTimer=0;
+        
+        // Tactical
+        this.aggression=Math.random()*0.7+0.3;
+        this.positioning=Math.random()*0.7+0.3;
+        this.wingPlay=position==="LW"||position==="RW";
+        this.defensive=role==="DF";
+        
+        // Marking
+        this.markedPlayer=null;
+        this.spacingRadius=80;
+    }
+    
+    // BỨT TÓC DÀI - Gấp đôi tốc độ trong 10 giây
+    activateLongSprint(){
+        if(this.stamina>80&&this.longSprintCooldown<=0&&!this.longSprintActive&&!this.sprintActive){
+            this.longSprintActive=true;
+            this.longSprintTimer=300; // 10 giây (30 fps * 10)
+            this.longSprintCooldown=600; // Cooldown 20 giây
+            return true;
+        }
+        return false;
+    }
+    
+    updateLongSprint(){
+        if(this.longSprintActive){
+            this.speed=this.baseSpeed*3.0; // GẤP ĐÔI tốc độ sprint thường (2.2 -> 3.0)
+            this.stamina-=1.5; // TON RẤT NHIỀU thể lực
+            this.longSprintTimer--;
+            if(this.longSprintTimer<=0||this.stamina<=0){
+                this.longSprintActive=false;
+                this.speed=this.baseSpeed;
+            }
+        }
+        if(this.longSprintCooldown>0)this.longSprintCooldown--;
+    }
+    
+    activateSprint(){
+        if(this.stamina>30&&this.sprintCooldown<=0&&!this.sprintActive){
+            this.sprintActive=true;
+            this.sprintTimer=40;
+            this.sprintCooldown=80;
+        }
+    }
+    
+    updateSprint(){
+        if(this.sprintActive){
+            this.speed=this.baseSpeed*2.2;
+            this.stamina-=0.8;
+            this.sprintTimer--;
+            if(this.sprintTimer<=0||this.stamina<=0){
+                this.sprintActive=false;
+            }
+        }else{
+            this.speed=this.baseSpeed;
+            if(this.stamina<this.maxStamina)this.stamina+=0.15;
+        }
+        if(this.sprintCooldown>0)this.sprintCooldown--;
+    }
+    
+    slideTackle(){
+        if(this.defensive&&this.tackleCooldown<=0&&!this.tackling&&this.stamina>20){
+            this.tackling=true;
+            this.tackleTimer=22;
+            this.tackleCooldown=180;
+            this.stamina-=5;
+            return Math.random()<0.12?"foul":"clean";
+        }
+        return null;
+    }
+    
+    updateTackle(){
+        if(this.tackling){
+            this.tackleTimer--;
+            this.speed=this.baseSpeed*3.0;
+            if(this.tackleTimer<=0){
+                this.tackling=false;
+                this.speed=this.baseSpeed;
+            }
+        }
+        if(this.tackleCooldown>0)this.tackleCooldown--;
+    }
+    
+    move(tx,ty){
+        let dx=tx-this.x,dy=ty-this.y;
+        let dist=Math.hypot(dx,dy);
+        if(dist>1){
+            let staminaFactor=this.stamina/this.maxStamina*0.5+0.5;
+            let spd=this.speed*staminaFactor;
+            this.x+=dx/dist*spd;
+            this.y+=dy/dist*spd;
+        }
+    }
+    
+    // Maintain spacing with teammates - CẢI THIỆN
+    maintainSpacing(){
+        let teammates=this.team==="A"?playersA:playersB;
+        let pushX=0,pushY=0;
+        
+        for(let mate of teammates){
+            if(mate===this)continue;
+            let dx=this.x-mate.x;
+            let dy=this.y-mate.y;
+            let dist=Math.hypot(dx,dy);
+            
+            // TĂNG lực đẩy khi cầu thủ đứng gần nhau
+            if(dist<this.spacingRadius&&dist>0){
+                let pushForce=(this.spacingRadius-dist)/this.spacingRadius*1.2; // TĂNG từ 0.5 lên 1.2
+                pushX+=dx/dist*pushForce;
+                pushY+=dy/dist*pushForce;
+            }
+        }
+        
+        this.x+=pushX;
+        this.y+=pushY;
+    }
+    
+    isOffside(){
+        if(!ball||this===controllingPlayer)return false;
+        let opps=this.team==="A"?playersB:playersA;
+        let cnt=0;
+        
+        if(this.team==="A"){
+            if(this.x<=ball.x)return false;
+            for(let o of opps)if(o.x>this.x)cnt++;
+        }else{
+            if(this.x>=ball.x)return false;
+            for(let o of opps)if(o.x<this.x)cnt++;
+        }
+        return cnt<2;
+    }
+    
+    update(){
+        this.updateSprint();
+        this.updateTackle();
+        
+        if(this.isRecovering){
+            this.recoverTimer--;
+            if(this.recoverTimer<=0)this.isRecovering=false;
+        }
+        
+        // Reset position mode
+        if(isResettingPositions){
+            this.move(this.homeX,this.homeY);
+            this.maintainSpacing();
+            return;
+        }
+        
+        let tx,ty;
+        
+        if(controllingPlayer&&controllingPlayer.team===this.team){
+            if(this===controllingPlayer){
+                let gx=this.team==="A"?FIELD_WIDTH:0;
+                let gy=FIELD_HEIGHT/2;
+                
+                let opps=this.team==="A"?playersB:playersA;
+                let nearest=null,minD=Infinity;
+                
+                for(let o of opps){
+                    let d=Math.hypot(o.x-this.x,o.y-this.y);
+                    if(d<minD){minD=d;nearest=o;}
+                }
+                
+                if(nearest&&minD<100){
+                    if(Math.random()<this.skill*0.4){
+                        let ang=Math.atan2(nearest.y-this.y,nearest.x-this.x);
+                        tx=this.x+Math.cos(ang+Math.PI/2)*65;
+                        ty=this.y+Math.sin(ang+Math.PI/2)*65;
+                        this.activateSprint();
+                    }else{
+                        tx=gx;
+                        ty=gy+(Math.random()-0.5)*180;
+                    }
+                }else{
+                    tx=gx;
+                    ty=gy+(Math.random()-0.5)*150;
+                    if(minD>130&&Math.random()<0.4)this.activateSprint();
+                }
+            }else{
+                // Teammates positioning - CẢI THIỆN ĐỂ GIÃN RA
+                if(this.role==="DF"){
+                    // Hậu vệ giãn ra theo chiều ngang
+                    let defSpread=FIELD_HEIGHT*0.75; // Chiều cao phủ
+                    let defLine=this.team==="A"?280:FIELD_WIDTH-280; // TĂNG khoảng cách từ 320 lên 280
+                    
+                    tx=defLine+(Math.random()-0.5)*60; // Biến thiên nhẹ theo chiều ngang
+                    ty=this.homeY+(Math.random()-0.5)*120; // Biến thiên theo chiều dọc
+                    
+                    // Mark opposing forwards
+                    let opps=this.team==="A"?playersB:playersA;
+                    let fwds=opps.filter(p=>p.role==="FW");
+                    if(fwds.length>0&&!this.markedPlayer){
+                        this.markedPlayer=fwds[Math.floor(Math.random()*fwds.length)];
+                    }
+                    if(this.markedPlayer){
+                        let distToMark=Math.hypot(this.markedPlayer.x-this.x,this.markedPlayer.y-this.y);
+                        if(distToMark<200){
+                            tx=this.markedPlayer.x-(this.team==="A"?40:-40); // TĂNG khoảng cách marking
+                            ty=this.markedPlayer.y;
+                        }
+                    }
+                }else if(this.role==="MF"){
+                    if(this.wingPlay){
+                        // Wing play - giãn ra sát biên
+                        tx=this.team==="A"?650:750; // Vị trí trung tâm
+                        ty=this.position==="LW"?100:FIELD_HEIGHT-100; // SÁT BIÊN hơn (từ 120 xuống 100)
+                        
+                        if(wingPlayActive){
+                            tx=this.team==="A"?FIELD_WIDTH-250:250;
+                            if(Math.random()<0.35)this.activateSprint();
+                        }
+                    }else{
+                        // Tiền vệ trung tâm - giãn ra theo chiều dọc
+                        tx=FIELD_WIDTH/2+(this.team==="A"?180:-180); // TĂNG khoảng cách từ 150 lên 180
+                        ty=this.homeY+(Math.random()-0.5)*150; // TĂNG biến thiên từ 120 lên 150
+                    }
+                }else if(this.role==="FW"){
+                    // Tiền đạo - giãn ra nhiều hơn
+                    let baseX=this.team==="A"?FIELD_WIDTH-220:220; // TĂNG từ 200 lên 220
+                    let baseY=FIELD_HEIGHT/2;
+                    
+                    if(this.team==="A"&&ball.x>900){
+                        let oppsInBox=playersB.filter(p=>p.x>FIELD_WIDTH-PENALTY_BOX_LARGE_WIDTH);
+                        if(oppsInBox.length>0){
+                            let avgY=oppsInBox.reduce((s,p)=>s+p.y,0)/oppsInBox.length;
+                            baseY=avgY>FIELD_HEIGHT/2?GOAL_Y_MIN+50:GOAL_Y_MAX-50;
+                        }
+                    }else if(this.team==="B"&&ball.x<500){
+                        let oppsInBox=playersA.filter(p=>p.x<PENALTY_BOX_LARGE_WIDTH);
+                        if(oppsInBox.length>0){
+                            let avgY=oppsInBox.reduce((s,p)=>s+p.y,0)/oppsInBox.length;
+                            baseY=avgY>FIELD_HEIGHT/2?GOAL_Y_MIN+50:GOAL_Y_MAX-50;
+                        }
+                    }
+                    
+                    tx=baseX+(Math.random()-0.5)*100; // TĂNG biến thiên từ 80 lên 100
+                    ty=baseY+(Math.random()-0.5)*130; // TĂNG từ 100 lên 130
+                    
+                    if(Math.random()<0.45&&this.stamina>50&&
+                       ((this.team==="A"&&controllingPlayer.x>800)||
+                        (this.team==="B"&&controllingPlayer.x<600))){
+                        this.activateSprint();
+                    }
+                    
+                    if(this.isOffside()){
+                        tx=ball.x-(this.team==="A"?50:-50); // TĂNG từ 40 lên 50
+                    }
+                }
+            }
+        }else{
+            tx=ball.x;
+            ty=ball.y;
+            
+            let d=Math.hypot(ball.x-this.x,ball.y-this.y);
+            
+            if(d<140&&Math.random()<this.aggression*0.6&&this.stamina>30){
+                if(this.defensive&&d<40&&controllingPlayer&&controllingPlayer.team!==this.team){
+                    let result=this.slideTackle();
+                    if(result==="foul"){
+                        setPlay="freekick";
+                        setPos={x:ball.x,y:ball.y};
+                        setPlayTeam=this.team==="A"?"B":"A";
+                        ball.vx=0;
+                        ball.vy=0;
+                        controllingPlayer=null;
+                        setPlayReady=false;
+                        runUpActive=false;
+                        createDefensiveWall();
+                    }
+                }
+                if(d<180&&Math.random()<0.35&&this.stamina>40)this.activateSprint();
+            }
+            
+            if(this.role==="DF"){
+                tx=this.team==="A"?Math.min(tx,FIELD_WIDTH/2):Math.max(tx,FIELD_WIDTH/2);
+            }else if(this.role==="FW"){
+                tx=this.team==="A"?Math.max(tx,FIELD_WIDTH/2+100):Math.min(tx,FIELD_WIDTH/2-100);
+            }
+        }
+        
+        this.move(tx,ty);
+        this.maintainSpacing(); // Luôn gọi để duy trì khoảng cách
+    }
+    
+    draw(){
+        ctx.beginPath();
+        ctx.arc(this.x,this.y,8,0,Math.PI*2);
+        ctx.fillStyle=this.color;
+        ctx.fill();
+        ctx.strokeStyle="#000";
+        ctx.lineWidth=1.2;
+        ctx.stroke();
+        
+        if(this.tackling){
+            ctx.strokeStyle="#ff0000";
+            ctx.lineWidth=2.5;
+            ctx.beginPath();
+            ctx.arc(this.x,this.y,13,0,Math.PI*2);
+            ctx.stroke();
+        }
+        
+        if(this.sprintActive){
+            ctx.strokeStyle="#ffff00";
+            ctx.lineWidth=2;
+            ctx.beginPath();
+            ctx.arc(this.x,this.y,11,0,Math.PI*2);
+            ctx.stroke();
+        }
+        
+        // Stamina bar - hiển thị khi <140
+        if(this.stamina<140){
+            let w=18;
+            let percent=this.stamina/this.maxStamina;
+            ctx.fillStyle=percent>0.6?"#0f0":percent>0.3?"#ff0":"#f00";
+            ctx.fillRect(this.x-w/2,this.y-14,w*percent,2.5);
+        }
+        
+        if(this===setPlayRunner){
+            ctx.strokeStyle="#00ffff";
+            ctx.lineWidth=2.5;
+            ctx.beginPath();
+            ctx.arc(this.x,this.y,14,0,Math.PI*2);
+            ctx.stroke();
+        }
+        
+        // Position label
+        ctx.fillStyle="#fff";
+        ctx.font="bold 8px Arial";
+        ctx.fillText(this.position,this.x-8,this.y+22);
+    }
+}
+
+class Goalkeeper extends Player{
+    constructor(x,y,color,speed,team,skill){
+        super(x,y,color,speed,team,"GK","GK",skill);
+        this.isDiving=false;
+        this.diveTimer=0;
+        this.diveTarget={x,y};
+        this.reflexes=0.6+skill*0.4;
+        
+        // Goalkeeper box limits
+        if(team==="A"){
+            this.boxLeft=0;
+            this.boxRight=PENALTY_BOX_LARGE_WIDTH;
+        }else{
+            this.boxLeft=FIELD_WIDTH-PENALTY_BOX_LARGE_WIDTH;
+            this.boxRight=FIELD_WIDTH;
+        }
+        this.boxTop=PENALTY_BOX_TOP;
+        this.boxBottom=PENALTY_BOX_TOP+PENALTY_BOX_LARGE_HEIGHT;
+    }
+    
+    update(){
+        this.updateSprint();
+        
+        if(this.isRecovering){
+            this.recoverTimer--;
+            if(this.recoverTimer<=0)this.isRecovering=false;
+        }
+        
+        // Reset position
+        if(isResettingPositions){
+            this.move(this.homeX,this.homeY);
+            return;
+        }
+        
+        let tx=this.homeX,ty=this.homeY;
+        
+        if(this.isDiving){
+            this.diveTimer--;
+            if(this.diveTimer<=0){
+                this.isDiving=false;
+                this.speed=this.baseSpeed;
+            }else{
+                this.speed=this.baseSpeed*4.5;
+                this.move(this.diveTarget.x,this.diveTarget.y);
+                
+                // Constrain to box
+                this.x=Math.max(this.boxLeft,Math.min(this.boxRight,this.x));
+                this.y=Math.max(this.boxTop,Math.min(this.boxBottom,this.y));
+                return;
+            }
+        }
+        
+        let inBox=(this.team==="A"&&ball.x<PENALTY_BOX_LARGE_WIDTH+50)||
+                  (this.team==="B"&&ball.x>FIELD_WIDTH-PENALTY_BOX_LARGE_WIDTH-50);
+        
+        if(inBox){
+            tx=ball.x;
+            ty=ball.y;
+            
+            let d=Math.hypot(ball.x-this.x,ball.y-this.y);
+            let spd=Math.hypot(ball.vx,ball.vy);
+            
+            // Diving save
+            if(spd>6&&d<100&&d>25&&!this.isDiving&&this.stamina>20){
+                if(Math.random()<this.reflexes){
+                    this.isDiving=true;
+                    this.diveTimer=18;
+                    this.stamina-=8;
+                    this.diveTarget.x=ball.x+ball.vx*4;
+                    this.diveTarget.y=ball.y+ball.vy*4;
+                    
+                    // Constrain target to box
+                    this.diveTarget.x=Math.max(this.boxLeft,Math.min(this.boxRight,this.diveTarget.x));
+                    this.diveTarget.y=Math.max(this.boxTop,Math.min(this.boxBottom,this.diveTarget.y));
+                }
+            }
+            
+            if(d<120&&this.stamina>30)this.activateSprint();
+        }
+        
+        // Always stay in box
+        tx=Math.max(this.boxLeft,Math.min(this.boxRight,tx));
+        ty=Math.max(this.boxTop,Math.min(this.boxBottom,ty));
+        
+        this.move(tx,ty);
+        
+        // Final constraint
+        this.x=Math.max(this.boxLeft,Math.min(this.boxRight,this.x));
+        this.y=Math.max(this.boxTop,Math.min(this.boxBottom,this.y));
+        
+        // Hồi phục thể lực nhanh hơn cho thủ môn
+        if(this.stamina<this.maxStamina)this.stamina+=0.2;
+    }
+    
+    draw(){
+        super.draw();
+        
+        if(this.isDiving){
+            ctx.strokeStyle="#ffd700";
+            ctx.lineWidth=4;
+            ctx.beginPath();
+            ctx.arc(this.x,this.y,18,0,Math.PI*2);
+            ctx.stroke();
+            
+            // Dive direction indicator
+            ctx.strokeStyle="#ffd700";
+            ctx.lineWidth=2;
+            ctx.setLineDash([3,3]);
+            ctx.beginPath();
+            ctx.moveTo(this.x,this.y);
+            ctx.lineTo(this.diveTarget.x,this.diveTarget.y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+    }
+}
+
+class Ball{
+    constructor(){
+        this.reset();
+    }
+    
+    reset(){
+        this.x=FIELD_WIDTH/2;
+        this.y=FIELD_HEIGHT/2;
+        this.vx=0;
+        this.vy=0;
+    }
+    
+    update(){
+        let spd=Math.hypot(this.vx,this.vy);
+        
+        if(spd>0.6){
+            let resist=0.976-spd*0.0011;
+            this.vx*=resist;
+            this.vy*=resist;
+        }else{
+            this.vx*=0.94;
+            this.vy*=0.94;
+        }
+        
+        this.x+=this.vx;
+        this.y+=this.vy;
+        
+        // Goalkeeper saves
+        let gkA=playersA.find(p=>p.role==="GK");
+        let gkB=playersB.find(p=>p.role==="GK");
+        
+        if(gkA&&this.x<100&&Math.hypot(gkA.x-this.x,gkA.y-this.y)<38){
+            if(Math.random()<gkA.reflexes){
+                this.vx=7+Math.random()*8;
+                this.vy=(Math.random()-0.5)*13;
+                lastTouch=gkA;
+                lastTeam="A";
+                return;
+            }
+        }
+        if(gkB&&this.x>FIELD_WIDTH-100&&Math.hypot(gkB.x-this.x,gkB.y-this.y)<38){
+            if(Math.random()<gkB.reflexes){
+                this.vx=-(7+Math.random()*8);
+                this.vy=(Math.random()-0.5)*13;
+                lastTouch=gkB;
+                lastTeam="B";
+                return;
+            }
+        }
+        
+        // Goals
+        if(this.x<0){
+            if(this.y>GOAL_Y_MIN&&this.y<GOAL_Y_MAX){
+                scoreB++;
+                this.reset();
+                resetAfterGoal();
+            }else{
+                handleOutOfBounds("left");
+            }
+        }else if(this.x>FIELD_WIDTH){
+            if(this.y>GOAL_Y_MIN&&this.y<GOAL_Y_MAX){
+                scoreA++;
+                this.reset();
+                resetAfterGoal();
+            }else{
+                handleOutOfBounds("right");
+            }
+        }
+        
+        // Out of bounds
+        if(this.y<0||this.y>FIELD_HEIGHT){
+            setPlay="throwin";
+            this.y=this.y<0?15:FIELD_HEIGHT-15;
+            setPos={x:this.x,y:this.y};
+            this.vx=0;
+            this.vy=0;
+            controllingPlayer=null;
+            setPlayReady=false;
+            setPlayTeam=lastTeam==="A"?"B":"A";
+            assignSetPlayPlayer();
+        }
+    }
+    
+    draw(){
+        ctx.beginPath();
+        ctx.arc(this.x,this.y,6,0,Math.PI*2);
+        let grad=ctx.createRadialGradient(this.x-2,this.y-2,0,this.x,this.y,6);
+        grad.addColorStop(0,"#fff");
+        grad.addColorStop(1,"#ddd");
+        ctx.fillStyle=grad;
+        ctx.fill();
+        ctx.strokeStyle="#000";
+        ctx.lineWidth=1;
+        ctx.stroke();
+        
+        if(setPlay){
+            ctx.fillStyle="#ffff00";
+            ctx.font="bold 12px Arial";
+            let txt=setPlay==="corner"?"ĐÁ GÓC":setPlay==="freekick"?"ĐÁ PHẠT":
+                    setPlay==="throwin"?"NÉM BIÊN":"PHÁT BÓNG";
+            ctx.fillText(txt,this.x,this.y-12);
+        }
+        
+        if(runUpActive&&setPlayRunner){
+            ctx.strokeStyle="#00ff00";
+            ctx.lineWidth=2;
+            ctx.setLineDash([5,5]);
+            ctx.beginPath();
+            ctx.moveTo(setPlayRunner.x,setPlayRunner.y);
+            ctx.lineTo(ball.x,ball.y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+        
+        if(badPassIndicator&&badPassTimer>0){
+            ctx.fillStyle="#ff4444";
+            ctx.font="bold 13px Arial";
+            ctx.fillText("BAD PASS!",badPassIndicator.x,badPassIndicator.y);
+            badPassTimer--;
+        }
+    }
+}
+
+function resetAfterGoal(){
+    // Reset all game state
+    lastTouch=null;
+    lastTeam=null;
+    controllingPlayer=null;
+    setPlay=null;
+    setPlayRunner=null;
+    setPlayReady=false;
+    runUpActive=false;
+    wingPlayActive=false;
+    wingPlayTimer=0;
+    
+    // Reset positions
+    isResettingPositions=true;
+    resetPositionTimer=90; // 3 seconds
+}
+
+function handleOutOfBounds(side){
+    if(side==="left"){
+        if(lastTeam==="A"){
+            setPlay="goalkick";
+            setPos={x:80,y:FIELD_HEIGHT/2};
+            setPlayTeam="B";
+        }else{
+            setPlay="corner";
+            setPos={x:20,y:ball.y<FIELD_HEIGHT/2?GOAL_Y_MIN-15:GOAL_Y_MAX+15};
+            setPlayTeam="A";
+        }
+    }else{
+        if(lastTeam==="B"){
+            setPlay="goalkick";
+            setPos={x:FIELD_WIDTH-80,y:FIELD_HEIGHT/2};
+            setPlayTeam="A";
+        }else{
+            setPlay="corner";
+            setPos={x:FIELD_WIDTH-20,y:ball.y<FIELD_HEIGHT/2?GOAL_Y_MIN-15:GOAL_Y_MAX+15};
+            setPlayTeam="B";
+        }
+    }
+    ball.x=setPos.x;
+    ball.y=setPos.y;
+    ball.vx=0;
+    ball.vy=0;
+    controllingPlayer=null;
+    setPlayReady=false;
+    
+    // Reset positions for set play
+    isResettingPositions=true;
+    resetPositionTimer=60;
+    
+    assignSetPlayPlayer();
+}
+
+function assignSetPlayPlayer(){
+    if(!setPlayTeam)return;
+    
+    let candidates=setPlayTeam==="A"?playersA.filter(p=>p.role!=="GK"):playersB.filter(p=>p.role!=="GK");
+    
+    if(setPlay==="goalkick"){
+        setPlayRunner=setPlayTeam==="A"?playersA.find(p=>p.role==="GK"):playersB.find(p=>p.role==="GK");
+    }else if(setPlay==="throwin"){
+        candidates=candidates.filter(p=>p.y>150&&p.y<FIELD_HEIGHT-150);
+        setPlayRunner=candidates.sort((a,b)=>
+            Math.hypot(a.x-setPos.x,a.y-setPos.y)-
+            Math.hypot(b.x-setPos.x,b.y-setPos.y)
+        )[0];
+    }else{
+        candidates=candidates.filter(p=>p.role==="MF"||p.role==="FW");
+        setPlayRunner=candidates.sort((a,b)=>
+            Math.hypot(a.x-setPos.x,a.y-setPos.y)-
+            Math.hypot(b.x-setPos.x,b.y-setPos.y)
+        )[0];
+    }
+    
+    lastTeam=setPlayTeam;
+    lastTouch=setPlayRunner;
+}
+
+function createDefensiveWall(){
+    if(!setPlay||setPlay!=="freekick")return;
+    
+    defensiveWall=[];
+    let defenders=(setPlayTeam==="A"?playersB:playersA)
+        .filter(p=>p.role!=="GK")
+        .sort((a,b)=>Math.hypot(a.x-ball.x,a.y-ball.y)-
+                     Math.hypot(b.x-ball.x,b.y-ball.y));
+    
+    for(let i=0;i<Math.min(5,defenders.length);i++){
+        let ang=Math.atan2(defenders[i].y-ball.y,defenders[i].x-ball.x);
+        let dist=40+i*20;
+        defensiveWall.push({
+            x:ball.x+Math.cos(ang)*dist,
+            y:ball.y+Math.sin(ang)*dist
+        });
+    }
+    
+    setTimeout(()=>{defensiveWall=[];},4000);
+}
+
+// PHÂN TÍCH TÌNH HUỐNG THÔNG MINH - Quyết định khi nào nên chuyền
+function analyzeSituation(player){
+    if(!player)return {shouldPass:false,shouldShoot:false,isWingPlay:false};
+    
+    let opps=player.team==="A"?playersB:playersA;
+    let mates=(player.team==="A"?playersA:playersB).filter(p=>p!==player&&p.role!=="GK");
+    
+    // 1. PHÂN TÍCH ÁP LỰC TỪ ĐỐI THỦ
+    let nearestOpp=null;
+    let minOppDist=Infinity;
+    let threateningOpps=0;
+    
+    for(let opp of opps){
+        let dist=Math.hypot(opp.x-player.x,opp.y-player.y);
+        if(dist<minOppDist){
+            minOppDist=dist;
+            nearestOpp=opp;
+        }
+        if(dist<120)threateningOpps++;
+    }
+    
+    let underPressure=minOppDist<80||threateningOpps>=2;
+    let urgentPressure=minOppDist<50||threateningOpps>=3;
+    
+    // 2. PHÂN TÍCH VỊ TRÍ
+    let goalX=player.team==="A"?FIELD_WIDTH:0;
+    let distToGoal=Math.hypot(goalX-ball.x,FIELD_HEIGHT/2-ball.y);
+    let inShootingZone=(player.team==="A"&&ball.x>FIELD_WIDTH-350)||(player.team==="B"&&ball.x<350);
+    let inDangerZone=(player.team==="A"&&ball.x<300)||(player.team==="B"&&ball.x>FIELD_WIDTH-300);
+    
+    // 3. TÌM ĐỒNG ĐỘI TỐT NHẤT ĐỂ CHUYỀN
+    let bestPassOption=findBestPassTarget(player,mates,opps,underPressure);
+    
+    // 4. QUYẾT ĐỊNH HÀNH ĐỘNG
+    let shouldPass=false;
+    let shouldShoot=false;
+    let isWingPlay=false;
+    
+    // Tình huống BẮT BUỘC PHẢI CHUYỀN
+    if(urgentPressure&&bestPassOption.safety>0.6){
+        shouldPass=true;
+    }
+    // Đang bị áp lực và có lựa chọn an toàn
+    else if(underPressure&&bestPassOption.safety>0.5&&Math.random()<0.7){
+        shouldPass=true;
+    }
+    // Trong vùng nguy hiểm (gần khung thành mình) - phải thoát bóng
+    else if(inDangerZone&&bestPassOption.available&&Math.random()<0.5){
+        shouldPass=true;
+    }
+    // Có cơ hội đảo cánh
+    else if(player.wingPlay&&bestPassOption.isWingOpportunity&&player.stamina>50&&Math.random()<0.4){
+        shouldPass=true;
+        isWingPlay=true;
+    }
+    // Có đồng đội ở vị trí tốt hơn để ghi bàn
+    else if(bestPassOption.betterShootingPos&&Math.random()<0.45){
+        shouldPass=true;
+    }
+    // Sút khi ở vị trí tốt và không bị áp lực
+    else if(inShootingZone&&!underPressure&&distToGoal<450&&player.stamina>30&&Math.random()<0.08){
+        shouldShoot=true;
+    }
+    // Chuyền ngẫu nhiên thấp khi không có tình huống đặc biệt
+    else if(!underPressure&&bestPassOption.available&&Math.random()<0.015){
+        shouldPass=true;
+    }
+    
+    return {
+        shouldPass:shouldPass,
+        shouldShoot:shouldShoot,
+        isWingPlay:isWingPlay,
+        passTarget:bestPassOption.target
+    };
+}
+
+// TÌM MỤC TIÊU CHUYỀN TỐT NHẤT
+function findBestPassTarget(player,mates,opps,underPressure){
+    if(mates.length===0)return {available:false,safety:0,target:null};
+    
+    let bestTarget=null;
+    let bestScore=-Infinity;
+    let bestSafety=0;
+    let isWingOpportunity=false;
+    let betterShootingPos=false;
+    
+    let goalX=player.team==="A"?FIELD_WIDTH:0;
+    let playerDistToGoal=Math.abs(player.x-goalX);
+    
+    for(let mate of mates){
+        // KIỂM TRA OFFSIDE
+        if(mate.isOffside())continue;
+        
+        let dist=Math.hypot(mate.x-player.x,mate.y-player.y);
+        if(dist<40||dist>600)continue; // Quá gần hoặc quá xa
+        
+        // TÍNH AN TOÀN CỦA ĐƯỜNG CHUYỀN
+        let safety=calculatePassSafety(player,mate,opps);
+        if(safety<0.3)continue; // Đường chuyền quá nguy hiểm
+        
+        // ĐÁNH GIÁ VỊ TRÍ CỦA ĐỒNG ĐỘI
+        let mateDistToGoal=Math.abs(mate.x-goalX);
+        let isForward=mateDistToGoal<playerDistToGoal;
+        let isWing=mate.wingPlay||(mate.y<150||mate.y>FIELD_HEIGHT-150);
+        
+        // TÍNH ĐIỂM
+        let score=0;
+        
+        // Ưu tiên đồng đội ở vị trí tiến công hơn
+        if(isForward)score+=150;
+        
+        // Ưu tiên tiền đạo
+        if(mate.role==="FW")score+=100;
+        
+        // An toàn đường chuyền rất quan trọng
+        score+=safety*200;
+        
+        // Khoảng cách hợp lý
+        if(dist>100&&dist<300)score+=80;
+        
+        // Nếu đang bị áp lực, ưu tiên đồng đội gần và an toàn
+        if(underPressure){
+            if(dist<180)score+=100;
+            score+=safety*150; // Nhân đôi trọng số an toàn
+        }else{
+            // Không bị áp lực thì ưu tiên tấn công
+            if(isForward)score+=100;
+        }
+        
+        // Cơ hội đảo cánh
+        if(isWing&&Math.abs(mate.y-player.y)>250){
+            score+=120;
+            if(score>bestScore)isWingOpportunity=true;
+        }
+        
+        // Đồng đội ở vị trí sút tốt hơn
+        if(mate.role==="FW"&&mateDistToGoal<300&&!mate.isOffside()){
+            score+=150;
+            betterShootingPos=true;
+        }
+        
+        // Thêm yếu tố ngẫu nhiên nhỏ
+        score+=Math.random()*30;
+        
+        if(score>bestScore){
+            bestScore=score;
+            bestTarget=mate;
+            bestSafety=safety;
+        }
+    }
+    
+    return {
+        available:bestTarget!==null,
+        target:bestTarget,
+        safety:bestSafety,
+        isWingOpportunity:isWingOpportunity,
+        betterShootingPos:betterShootingPos
+    };
+}
+
+// TÍNH ĐỘ AN TOÀN CỦA ĐƯỜNG CHUYỀN
+function calculatePassSafety(passer,receiver,opponents){
+    let passAngle=Math.atan2(receiver.y-passer.y,receiver.x-passer.x);
+    let passDist=Math.hypot(receiver.x-passer.x,receiver.y-passer.y);
+    
+    let safety=1.0;
+    
+    for(let opp of opponents){
+        if(opp.role==="GK")continue;
+        
+        // Tính khoảng cách từ đối thủ đến đường chuyền
+        let dx=opp.x-passer.x;
+        let dy=opp.y-passer.y;
+        let oppDist=Math.hypot(dx,dy);
+        
+        // Đối thủ quá xa, không ảnh hưởng
+        if(oppDist>passDist+100)continue;
+        
+        // Tính góc đến đối thủ
+        let oppAngle=Math.atan2(dy,dx);
+        let angleDiff=Math.abs(oppAngle-passAngle);
+        if(angleDiff>Math.PI)angleDiff=2*Math.PI-angleDiff;
+        
+        // Nếu đối thủ nằm trên đường chuyền
+        if(angleDiff<Math.PI/6){
+            // Tính khoảng cách vuông góc từ đối thủ đến đường chuyền
+            let perpDist=oppDist*Math.sin(angleDiff);
+            
+            // Đối thủ càng gần đường chuyền, càng nguy hiểm
+            if(perpDist<60){
+                safety*=perpDist/60;
+            }
+            
+            // Đối thủ đang sprint càng nguy hiểm
+            if(opp.sprintActive){
+                safety*=0.6;
+            }
+        }
+        
+        // Kiểm tra đối thủ gần điểm nhận bóng
+        let distToReceiver=Math.hypot(opp.x-receiver.x,opp.y-receiver.y);
+        if(distToReceiver<50){
+            safety*=0.4; // Rất nguy hiểm nếu có đối thủ gần người nhận
+        }else if(distToReceiver<100){
+            safety*=0.7;
+        }
+    }
+    
+    return safety;
+}
+
+function handlePossession(){
+    let all=[...playersA,...playersB];
+    
+    // Position reset timer
+    if(resetPositionTimer>0){
+        resetPositionTimer--;
+        if(resetPositionTimer<=0){
+            isResettingPositions=false;
+        }
+    }
+    
+    if(wingPlayTimer>0){
+        wingPlayTimer--;
+        if(wingPlayTimer<=0)wingPlayActive=false;
+    }
+    
+    // Set play with run-up
+    if(setPlay&&setPlayRunner&&!setPlayReady){
+        let dist=Math.hypot(setPlayRunner.x-setPos.x,setPlayRunner.y-setPos.y);
+        
+        if(dist>18){
+            setPlayRunner.move(setPos.x,setPos.y);
+            setPlayRunner.activateSprint();
+            ball.x=setPos.x;
+            ball.y=setPos.y;
+            return;
+        }else{
+            setPlayReady=true;
+            controllingPlayer=setPlayRunner;
+            
+            if(setPlay==="freekick"||setPlay==="corner"){
+                runUpActive=true;
+                runUpDistance=0;
+            }
+        }
+    }
+    
+    if(runUpActive&&controllingPlayer){
+        runUpDistance++;
+        if(runUpDistance>=20){
+            runUpActive=false;
+            runUpDistance=0;
+        }else{
+            return;
+        }
+    }
+    
+    if(controllingPlayer){
+        let off=controllingPlayer.team==="A"?12:-12;
+        ball.x=controllingPlayer.x+off;
+        ball.y=controllingPlayer.y;
+        ball.vx=0;
+        ball.vy=0;
+        lastTeam=controllingPlayer.team;
+        lastTouch=controllingPlayer;
+        
+        // Stamina drain when controlling
+        if(controllingPlayer.stamina>0)controllingPlayer.stamina-=0.02;
+        
+        // Ball stealing
+        let opps=controllingPlayer.team==="A"?playersB:playersA;
+        for(let o of opps){
+            if(o.role==="GK")continue;
+            let d=Math.hypot(o.x-ball.x,o.y-ball.y);
+            if(d<16){
+                let steal=0.022+o.skill*0.038;
+                let def=controllingPlayer.skill*0.028;
+                if(Math.random()<steal-def){
+                    controllingPlayer=o;
+                    lastTouch=o;
+                    lastTeam=o.team;
+                    if(setPlay){
+                        setPlay=null;
+                        setPlayRunner=null;
+                        setPlayReady=false;
+                        runUpActive=false;
+                    }
+                    break;
+                }
+            }
+        }
+        
+        if(setPlay&&setPlayReady&&!runUpActive){
+            if(Math.random()<0.09){
+                executeSetPlay();
+            }
+        }else if(!setPlay&&!isResettingPositions){
+            // THÔNG MINH HƠN - Phân tích tình huống trước khi quyết định
+            let situation=analyzeSituation(controllingPlayer);
+            
+            if(situation.shouldPass){
+                if(situation.isWingPlay){
+                    wingPlayActive=true;
+                    wingPlayTimer=180;
+                }
+                pass(situation.isWingPlay,situation.passTarget);
+            }else if(situation.shouldShoot){
+                shoot();
+            }
+        }
+    }else{
+        let ballSpd=Math.hypot(ball.vx,ball.vy);
+        
+        if(ballSpd>1.2){
+            all.forEach(p=>{
+                let d=Math.hypot(p.x-ball.x,p.y-ball.y);
+                let px=ball.x+ball.vx*7;
+                let py=ball.y+ball.vy*7;
+                let pd=Math.hypot(p.x-px,p.y-py);
+                
+                if(pd<100&&d<200&&p.stamina>20){
+                    p.move(px,py);
+                    if(Math.random()<0.35)p.activateSprint();
+                }
+                
+                if(d<16&&ballSpd<10){
+                    controllingPlayer=p;
+                    lastTeam=p.team;
+                    lastTouch=p;
+                    ball.vx=0;
+                    ball.vy=0;
+                    if(setPlay){
+                        setPlay=null;
+                        setPlayRunner=null;
+                        setPlayReady=false;
+                    }
+                }
+            });
+        }else{
+            all.forEach(p=>{
+                let d=Math.hypot(p.x-ball.x,p.y-ball.y);
+                if(d<13){
+                    controllingPlayer=p;
+                    lastTeam=p.team;
+                    lastTouch=p;
+                    if(setPlay){
+                        setPlay=null;
+                        setPlayRunner=null;
+                        setPlayReady=false;
+                    }
+                }
+            });
+        }
+    }
+}
+
+function shoot(){
+    if(!controllingPlayer||controllingPlayer.stamina<20)return;
+    
+    let tx=controllingPlayer.team==="A"?FIELD_WIDTH:0;
+    let ty=FIELD_HEIGHT/2+(Math.random()-0.5)*200;
+    
+    let acc=controllingPlayer.skill;
+    ty+=(Math.random()-0.5)*120*(1-acc);
+    
+    let dx=tx-ball.x;
+    let dy=ty-ball.y;
+    let norm=Math.hypot(dx,dy);
+    
+    let basePower=7.5;
+    let skillBonus=controllingPlayer.skill*2.8;
+    let staminaBonus=controllingPlayer.stamina/controllingPlayer.maxStamina*2;
+    let distBonus=Math.abs(controllingPlayer.team==="A"?ball.x-FIELD_WIDTH:ball.x)/60;
+    let power=basePower+Math.random()*4.5+skillBonus+staminaBonus+distBonus;
+    
+    if(Math.random()<controllingPlayer.skill*0.35){
+        let curve=(Math.random()-0.5)*0.6;
+        ball.vx=(dx/norm)*power+curve*dy/norm*3.5;
+        ball.vy=(dy/norm)*power-curve*dx/norm*3.5;
+    }else{
+        ball.vx=(dx/norm)*power;
+        ball.vy=(dy/norm)*power;
+    }
+    
+    controllingPlayer.stamina-=8;
+    lastTouch=controllingPlayer;
+    controllingPlayer=null;
+}
+
+function pass(isWingPass,preferredTarget){
+    if(!controllingPlayer||controllingPlayer.stamina<10)return;
+    
+    let mates=controllingPlayer.team==="A"?playersA.filter(p=>p.role!=="GK"):playersB.filter(p=>p.role!=="GK");
+    mates=mates.filter(p=>p!==controllingPlayer&&!p.isOffside());
+    
+    if(mates.length===0){
+        mates=controllingPlayer.team==="A"?playersA.filter(p=>p.role!=="GK"):playersB.filter(p=>p.role!=="GK");
+        mates=mates.filter(p=>p!==controllingPlayer);
+    }
+    
+    if(mates.length===0)return;
+    
+    // SỬ DỤNG MỤC TIÊU ĐÃ CHỌN THÔNG MINH (nếu có)
+    let best=preferredTarget&&mates.includes(preferredTarget)?preferredTarget:null;
+    
+    // Nếu không có mục tiêu được chọn trước, tìm theo cách cũ
+    if(!best){
+        let bestScore=-Infinity;
+        let nearGoal=(controllingPlayer.team==="A"&&controllingPlayer.x>FIELD_WIDTH-500)||
+                     (controllingPlayer.team==="B"&&controllingPlayer.x<500);
+        
+        for(let m of mates){
+            let fwd=controllingPlayer.team==="A"?m.x:-m.x;
+            let lateral=Math.abs(m.y-controllingPlayer.y);
+            let dist=Math.hypot(m.x-controllingPlayer.x,m.y-controllingPlayer.y);
+            
+            let score=0;
+            
+            if(isWingPass){
+                if(m.wingPlay){
+                    score=fwd*2+Math.random()*200;
+                }else{
+                    score=fwd+Math.random()*100;
+                }
+            }else if(!nearGoal&&lateral>150&&dist<350){
+                score=Math.random()*180+lateral*0.9;
+            }else{
+                score=fwd+Math.random()*140-dist*0.25;
+                if(m.role==="FW")score+=80;
+            }
+            
+            if(score>bestScore){
+                bestScore=score;
+                best=m;
+            }
+        }
+    }
+    
+    if(!best)best=mates[Math.floor(Math.random()*mates.length)];
+    
+    // TÍNH TOÁN HƯỚNG VÀ LỰC CHUYỀN THÔNG MINH HƠN
+    // Dự đoán vị trí người nhận sẽ di chuyển đến
+    let predictX=best.x;
+    let predictY=best.y;
+    
+    // Nếu người nhận đang di chuyển, dự đoán vị trí tương lai
+    let bestVelX=0,bestVelY=0;
+    if(best.team==="A"){
+        bestVelX=best.x<FIELD_WIDTH-200?best.baseSpeed*15:0;
+    }else{
+        bestVelX=best.x>200?-best.baseSpeed*15:0;
+    }
+    
+    predictX+=bestVelX;
+    predictY+=bestVelY;
+    
+    // Kiểm tra có đối thủ nào đang chặn đường không
+    let opps=controllingPlayer.team==="A"?playersB:playersA;
+    let passAngle=Math.atan2(predictY-ball.y,predictX-ball.x);
+    
+    // Điều chỉnh góc để tránh đối thủ gần
+    for(let opp of opps){
+        if(opp.role==="GK")continue;
+        
+        let oppDist=Math.hypot(opp.x-ball.x,opp.y-ball.y);
+        if(oppDist>200)continue;
+        
+        let oppAngle=Math.atan2(opp.y-ball.y,opp.x-ball.x);
+        let angleDiff=Math.abs(oppAngle-passAngle);
+        if(angleDiff>Math.PI)angleDiff=2*Math.PI-angleDiff;
+        
+        // Nếu đối thủ gần đường chuyền, điều chỉnh góc
+        if(angleDiff<Math.PI/8&&oppDist<100){
+            // Xoay góc một chút để tránh
+            passAngle+=oppDist<60?(Math.PI/6):(Math.PI/12);
+            predictX=ball.x+Math.cos(passAngle)*Math.hypot(predictX-ball.x,predictY-ball.y);
+            predictY=ball.y+Math.sin(passAngle)*Math.hypot(predictX-ball.x,predictY-ball.y);
+            break;
+        }
+    }
+    
+    let dx=predictX-ball.x;
+    let dy=predictY-ball.y;
+    let norm=Math.hypot(dx,dy);
+    
+    let basePower=4.5;
+    let skillBonus=controllingPlayer.skill*2.2;
+    let distFactor=Math.min(norm/120,2.5);
+    let power=basePower+Math.random()*3.5+skillBonus+distFactor;
+    
+    // Cơ hội chuyền tệ giảm xuống
+    if(Math.random()<0.015){
+        let angleError=(Math.random()-0.5)*Math.PI/1.3;
+        let currentAngle=Math.atan2(dy,dx);
+        let newAngle=currentAngle+angleError;
+        
+        ball.vx=Math.cos(newAngle)*power*1.3;
+        ball.vy=Math.sin(newAngle)*power*1.3;
+        
+        badPassIndicator={x:ball.x,y:ball.y-25};
+        badPassTimer=50;
+        
+        if(best){
+            best.isRecovering=true;
+            best.recoverTimer=35;
+        }
+    }else{
+        let accuracy=controllingPlayer.passAccuracy;
+        if(Math.random()<accuracy){
+            ball.vx=(dx/norm)*power;
+            ball.vy=(dy/norm)*power;
+        }else{
+            let angleError=(Math.random()-0.5)*Math.PI/9; // Giảm sai số từ PI/7 xuống PI/9
+            let currentAngle=Math.atan2(dy,dx);
+            let newAngle=currentAngle+angleError;
+            
+            ball.vx=Math.cos(newAngle)*power*0.95; // Tăng từ 0.92 lên 0.95
+            ball.vy=Math.sin(newAngle)*power*0.95;
+        }
+    }
+    
+    controllingPlayer.stamina-=3;
+    lastTouch=controllingPlayer;
+    controllingPlayer=null;
+}
+
+function executeSetPlay(){
+    if(!controllingPlayer||!setPlay||!setPlayReady||controllingPlayer.stamina<15)return;
+    
+    if(setPlay==="corner"){
+        let tx=setPlayTeam==="A"?FIELD_WIDTH-180:180;
+        let ty=GOAL_Y_MIN+Math.random()*(GOAL_Y_MAX-GOAL_Y_MIN);
+        
+        let dx=tx-ball.x;
+        let dy=ty-ball.y;
+        let norm=Math.hypot(dx,dy);
+        
+        let power=9.5+Math.random()*3.5+controllingPlayer.skill*2.5;
+        
+        ball.vx=(dx/norm)*power;
+        ball.vy=(dy/norm)*power;
+    }else if(setPlay==="throwin"){
+        let mates=setPlayTeam==="A"?playersA.filter(p=>p.role!=="GK"):playersB.filter(p=>p.role!=="GK");
+        let nearby=mates.filter(m=>Math.hypot(m.x-ball.x,m.y-ball.y)<220);
+        let target=nearby.length>0?nearby[Math.floor(Math.random()*nearby.length)]:mates[0];
+        
+        let dx=target.x-ball.x;
+        let dy=target.y-ball.y;
+        let norm=Math.hypot(dx,dy);
+        
+        let power=4.2+Math.random()*2.3;
+        
+        ball.vx=(dx/norm)*power;
+        ball.vy=(dy/norm)*power;
+    }else if(setPlay==="goalkick"){
+        let tx=setPlayTeam==="A"?FIELD_WIDTH/2+200:FIELD_WIDTH/2-200;
+        let ty=FIELD_HEIGHT/2+(Math.random()-0.5)*250;
+        
+        let dx=tx-ball.x;
+        let dy=ty-ball.y;
+        let norm=Math.hypot(dx,dy);
+        
+        let power=11+Math.random()*4.5+controllingPlayer.skill*2;
+        
+        ball.vx=(dx/norm)*power;
+        ball.vy=(dy/norm)*power;
+    }else if(setPlay==="freekick"){
+        let distToGoal=setPlayTeam==="A"?
+            Math.hypot(FIELD_WIDTH-ball.x,FIELD_HEIGHT/2-ball.y):
+            Math.hypot(ball.x,FIELD_HEIGHT/2-ball.y);
+        
+        if(distToGoal<350&&Math.random()<0.65){
+            let tx=setPlayTeam==="A"?FIELD_WIDTH:0;
+            let ty=FIELD_HEIGHT/2+(Math.random()-0.5)*150;
+            
+            let dx=tx-ball.x;
+            let dy=ty-ball.y;
+            let norm=Math.hypot(dx,dy);
+            
+            let power=12+Math.random()*5+controllingPlayer.skill*3;
+            
+            if(Math.random()<controllingPlayer.skill*0.55){
+                let curve=(Math.random()-0.5)*0.9;
+                ball.vx=(dx/norm)*power+curve*dy/norm*5;
+                ball.vy=(dy/norm)*power-curve*dx/norm*5;
+            }else{
+                ball.vx=(dx/norm)*power;
+                ball.vy=(dy/norm)*power;
+            }
+        }else{
+            let mates=setPlayTeam==="A"?playersA.filter(p=>p.role!=="GK"):playersB.filter(p=>p.role!=="GK");
+            let target=mates[Math.floor(Math.random()*mates.length)];
+            
+            let dx=target.x-ball.x;
+            let dy=target.y-ball.y;
+            let norm=Math.hypot(dx,dy);
+            
+            let power=7.5+Math.random()*3.5+controllingPlayer.skill*2.3;
+            
+            ball.vx=(dx/norm)*power;
+            ball.vy=(dy/norm)*power;
+        }
+    }
+    
+    controllingPlayer.stamina-=10;
+    lastTouch=controllingPlayer;
+    controllingPlayer=null;
+    setPlay=null;
+    setPlayTeam=null;
+    setPlayRunner=null;
+    setPlayReady=false;
+    runUpActive=false;
+    defensiveWall=[];
+}
+
+function drawField(){
+    ctx.clearRect(0,0,FIELD_WIDTH,FIELD_HEIGHT);
+    
+    // Field markings
+    ctx.strokeStyle="#fff";
+    ctx.lineWidth=2.5;
+    ctx.strokeRect(0,0,FIELD_WIDTH,FIELD_HEIGHT);
+    
+    // Center line
+    ctx.beginPath();
+    ctx.moveTo(FIELD_WIDTH/2,0);
+    ctx.lineTo(FIELD_WIDTH/2,FIELD_HEIGHT);
+    ctx.stroke();
+    
+    // Center circle
+    ctx.beginPath();
+    ctx.arc(FIELD_WIDTH/2,FIELD_HEIGHT/2,80,0,Math.PI*2);
+    ctx.stroke();
+    ctx.fillStyle="#fff";
+    ctx.beginPath();
+    ctx.arc(FIELD_WIDTH/2,FIELD_HEIGHT/2,4,0,Math.PI*2);
+    ctx.fill();
+    
+    // PENALTY BOXES - 2 hình chữ nhật chuẩn FIFA
+    ctx.strokeStyle="#fff";
+    ctx.lineWidth=2;
+    
+    // Left side - Large box
+    ctx.strokeRect(0,PENALTY_BOX_TOP,PENALTY_BOX_LARGE_WIDTH,PENALTY_BOX_LARGE_HEIGHT);
+    // Left side - Small box (6-yard box)
+    ctx.strokeRect(0,FIELD_HEIGHT/2-PENALTY_BOX_SMALL_HEIGHT/2,PENALTY_BOX_SMALL_WIDTH,PENALTY_BOX_SMALL_HEIGHT);
+    
+    // Right side - Large box
+    ctx.strokeRect(FIELD_WIDTH-PENALTY_BOX_LARGE_WIDTH,PENALTY_BOX_TOP,PENALTY_BOX_LARGE_WIDTH,PENALTY_BOX_LARGE_HEIGHT);
+    // Right side - Small box
+    ctx.strokeRect(FIELD_WIDTH-PENALTY_BOX_SMALL_WIDTH,FIELD_HEIGHT/2-PENALTY_BOX_SMALL_HEIGHT/2,PENALTY_BOX_SMALL_WIDTH,PENALTY_BOX_SMALL_HEIGHT);
+    
+    // Penalty arcs
+    ctx.beginPath();
+    ctx.arc(PENALTY_BOX_LARGE_WIDTH,FIELD_HEIGHT/2,80,Math.PI*0.66,Math.PI*1.34);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(FIELD_WIDTH-PENALTY_BOX_LARGE_WIDTH,FIELD_HEIGHT/2,80,-Math.PI*0.34,Math.PI*0.34);
+    ctx.stroke();
+    
+    // Penalty spots
+    ctx.fillStyle="#fff";
+    ctx.beginPath();
+    ctx.arc(140,FIELD_HEIGHT/2,4,0,Math.PI*2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(FIELD_WIDTH-140,FIELD_HEIGHT/2,4,0,Math.PI*2);
+    ctx.fill();
+    
+    // Goals
+    ctx.strokeStyle="#ffa500";
+    ctx.lineWidth=8;
+    ctx.beginPath();
+    ctx.moveTo(0,GOAL_Y_MIN);
+    ctx.lineTo(0,GOAL_Y_MAX);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(FIELD_WIDTH,GOAL_Y_MIN);
+    ctx.lineTo(FIELD_WIDTH,GOAL_Y_MAX);
+    ctx.stroke();
+    
+    // Corner arcs
+    ctx.strokeStyle="#fff";
+    ctx.lineWidth=2;
+    ctx.beginPath();
+    ctx.arc(0,0,15,0,Math.PI/2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(FIELD_WIDTH,0,15,Math.PI/2,Math.PI);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(0,FIELD_HEIGHT,15,-Math.PI/2,0);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(FIELD_WIDTH,FIELD_HEIGHT,15,Math.PI,Math.PI*1.5);
+    ctx.stroke();
+    
+    // Team names
+    if(teamA&&teamB){
+        ctx.fillStyle=teamA.color;
+        ctx.font="bold 18px Arial";
+        ctx.fillText(teamA.name,120,35);
+        
+        ctx.fillStyle=teamB.color;
+        ctx.fillText(teamB.name,FIELD_WIDTH-200,35);
+        
+        if(controllingPlayer){
+            let indX=controllingPlayer.team==="A"?120:FIELD_WIDTH-200;
+            ctx.fillStyle="#ffff00";
+            ctx.font="bold 22px Arial";
+            ctx.fillText("▶",indX-30,35);
+        }
+    }
+    
+    // Defensive wall
+    if(defensiveWall.length>0){
+        defensiveWall.forEach(w=>{
+            ctx.fillStyle="rgba(100,100,100,0.75)";
+            ctx.beginPath();
+            ctx.arc(w.x,w.y,10,0,Math.PI*2);
+            ctx.fill();
+        });
+    }
+    
+    // Reset position indicator
+    if(isResettingPositions){
+        ctx.fillStyle="rgba(255,255,0,0.3)";
+        ctx.font="bold 30px Arial";
+        ctx.fillText("⏳ CHUẨN BỊ...",FIELD_WIDTH/2-100,FIELD_HEIGHT/2);
+    }
+}
+
+function createFormation(team,formation,color,speed,skill){
+    let players=[];
+    let isTeamA=team==="A";
+    let baseX=isTeamA?80:FIELD_WIDTH-80;
+    
+    // Goalkeeper
+    players.push(new Goalkeeper(baseX,FIELD_HEIGHT/2,color,speed*0.9,team,skill));
+    
+    let positions;
+    if(formation==="4-4-2"){
+        positions=[
+            // Hậu vệ - GIÃN RA NHIỀU HƠN
+            {role:"DF",pos:"LB",x:baseX+(isTeamA?100:-100),y:120}, // Từ 150 -> 120
+            {role:"DF",pos:"CB",x:baseX+(isTeamA?100:-100),y:300}, // Từ 320 -> 300
+            {role:"DF",pos:"CB",x:baseX+(isTeamA?100:-100),y:500}, // Từ 480 -> 500
+            {role:"DF",pos:"RB",x:baseX+(isTeamA?100:-100),y:680}, // Từ 650 -> 680
+            
+            // Tiền vệ - GIÃN RA NHIỀU HƠN
+            {role:"MF",pos:"LW",x:baseX+(isTeamA?350:-350),y:100}, // Từ 120 -> 100 (sát biên hơn)
+            {role:"MF",pos:"CM",x:baseX+(isTeamA?350:-350),y:300}, // Từ 320 -> 300
+            {role:"MF",pos:"CM",x:baseX+(isTeamA?350:-350),y:500}, // Từ 480 -> 500
+            {role:"MF",pos:"RW",x:baseX+(isTeamA?350:-350),y:700}, // Từ 680 -> 700 (sát biên hơn)
+            
+            // Tiền đạo - GIÃN RA
+            {role:"FW",pos:"ST",x:baseX+(isTeamA?600:-600),y:300}, // Từ 320 -> 300
+            {role:"FW",pos:"ST",x:baseX+(isTeamA?600:-600),y:500}  // Từ 480 -> 500
+        ];
+    }else{
+        positions=[
+            // Hậu vệ - GIÃN RA
+            {role:"DF",pos:"LB",x:baseX+(isTeamA?100:-100),y:120}, // Từ 150 -> 120
+            {role:"DF",pos:"CB",x:baseX+(isTeamA?100:-100),y:300}, // Từ 320 -> 300
+            {role:"DF",pos:"CB",x:baseX+(isTeamA?100:-100),y:500}, // Từ 480 -> 500
+            {role:"DF",pos:"RB",x:baseX+(isTeamA?100:-100),y:680}, // Từ 650 -> 680
+            
+            // Tiền vệ - GIÃN RA
+            {role:"MF",pos:"CM",x:baseX+(isTeamA?350:-350),y:230}, // Từ 250 -> 230
+            {role:"MF",pos:"CAM",x:baseX+(isTeamA?350:-350),y:400},
+            {role:"MF",pos:"CM",x:baseX+(isTeamA?350:-350),y:570}, // Từ 550 -> 570
+            
+            // Tiền đạo - GIÃN RA
+            {role:"FW",pos:"LW",x:baseX+(isTeamA?600:-600),y:130}, // Từ 150 -> 130
+            {role:"FW",pos:"ST",x:baseX+(isTeamA?600:-600),y:400},
+            {role:"FW",pos:"RW",x:baseX+(isTeamA?600:-600),y:670}  // Từ 650 -> 670
+        ];
+    }
+    
+    positions.forEach(p=>{
+        players.push(new Player(p.x,p.y,color,speed,team,p.role,p.pos,skill));
+    });
+    
+    return players;
+}
+
+function startTournament(){
+    if(teams.length<4){
+        alert("Cần ít nhất 4 đội!");
+        return;
+    }
+    
+    matchHistory=[];
+    upcomingSchedule=[];
+    
+    let numGroups=Math.ceil(teams.length/4);
+    groups=[];
+    
+    for(let i=0;i<numGroups;i++)groups.push([]);
+    
+    let shuffled=[...teams].sort(()=>Math.random()-0.5);
+    shuffled.forEach((t,i)=>groups[i%numGroups].push(t));
+    
+    currentRound="group";
+    
+    groups.forEach((g,gi)=>{
+        for(let i=0;i<g.length;i++){
+            for(let j=i+1;j<g.length;j++){
+                upcomingSchedule.push({
+                    teamA:g[i],
+                    teamB:g[j],
+                    round:`Bảng ${String.fromCharCode(65+gi)}`
+                });
+            }
+        }
+    });
+    
+    updateUI();
+    startNextMatch();
+}
+
+function startNextMatch(){
+    document.getElementById("continueBtn").style.display="none";
+    
+    if(upcomingSchedule.length===0){
+        if(currentRound==="group"){
+            advanceFromGroups();
+        }else if(currentRound==="r16"||currentRound==="quarter"||currentRound==="semi"){
+            advanceKnockout();
+        }else{
+            let winner=scoreA>scoreB?teamA:(scoreB>scoreA?teamB:(penaltyA>penaltyB?teamA:teamB));
+            alert(`🏆🏆🏆 VÔ ĐỊCH: ${winner.name} 🏆🏆🏆`);
+            return;
+        }
+        return;
+    }
+    
+    let match=upcomingSchedule.shift();
+    teamA=match.teamA;
+    teamB=match.teamB;
+    formationA=teamA.formation;
+    formationB=teamB.formation;
+    
+    startMatch();
+    updateUI();
+}
+
+function advanceFromGroups(){
+    let qualified=[];
+    
+    groups.forEach(g=>{
+        let sorted=g.sort((a,b)=>{
+            if(b.points!==a.points)return b.points-a.points;
+            let gdA=a.goalsFor-a.goalsAgainst;
+            let gdB=b.goalsFor-b.goalsAgainst;
+            if(gdB!==gdA)return gdB-gdA;
+            return b.goalsFor-a.goalsFor;
+        });
+        
+        qualified.push(sorted[0],sorted[1]);
+    });
+    
+    if(qualified.length===16){
+        currentRound="r16";
+    }else if(qualified.length===8){
+        currentRound="quarter";
+    }else{
+        currentRound="semi";
+    }
+    
+    upcomingSchedule=[];
+    for(let i=0;i<qualified.length;i+=2){
+        upcomingSchedule.push({
+            teamA:qualified[i],
+            teamB:qualified[i+1],
+            round:currentRound==="r16"?"1/8":currentRound==="quarter"?"Tứ Kết":"Bán Kết"
+        });
+    }
+    
+    updateUI();
+    startNextMatch();
+}
+
+function advanceKnockout(){
+    let winners=[];
+    let lastRoundSize=currentRound==="r16"?8:currentRound==="quarter"?4:2;
+    
+    matchHistory.slice(-lastRoundSize).forEach(m=>{
+        if(m.winner){
+            let winnerTeam=teams.find(t=>t.name===m.winner);
+            if(winnerTeam&&!winners.includes(winnerTeam)){
+                winners.push(winnerTeam);
+            }
+        }
+    });
+    
+    if(winners.length<=1){
+        if(winners.length===1)alert(`🏆 VÔ ĐỊCH: ${winners[0].name}`);
+        return;
+    }
+    
+    if(currentRound==="r16")currentRound="quarter";
+    else if(currentRound==="quarter")currentRound="semi";
+    else if(currentRound==="semi")currentRound="final";
+    
+    upcomingSchedule=[];
+    for(let i=0;i<winners.length;i+=2){
+        upcomingSchedule.push({
+            teamA:winners[i],
+            teamB:winners[i+1],
+            round:currentRound==="quarter"?"Tứ Kết":currentRound==="semi"?"Bán Kết":"Chung Kết"
+        });
+    }
+    
+    updateUI();
+    startNextMatch();
+}
+
+function startMatch(){
+    scoreA=0;
+    scoreB=0;
+    minute=0;
+    second=0;
+    matchState="FIRST_HALF";
+    penaltyA=0;
+    penaltyB=0;
+    penaltyRound=0;
+    controllingPlayer=null;
+    lastTouch=null;
+    lastTeam=null;
+    setPlay=null;
+    setPlayRunner=null;
+    setPlayReady=false;
+    runUpActive=false;
+    wingPlayActive=false;
+    wingPlayTimer=0;
+    isResettingPositions=false;
+    resetPositionTimer=0;
+    defensiveWall=[];
+    badPassIndicator=null;
+    badPassTimer=0;
+    
+    playersA=createFormation("A",formationA,teamA.color,teamA.speed,teamA.skill);
+    playersB=createFormation("B",formationB,teamB.color,teamB.speed,teamB.skill);
+    
+    ball=new Ball();
+    
+    updateTacticsDisplay();
+}
+
+function updateTacticsDisplay(){
+    let div=document.getElementById("tacticsInfo");
+    let avgStaminaA=playersA.reduce((s,p)=>s+p.stamina,0)/playersA.length;
+    let avgStaminaB=playersB.reduce((s,p)=>s+p.stamina,0)/playersB.length;
+    
+    div.innerHTML=`
+        <div style="margin:5px 0">
+            <strong style="color:${teamA.color}">${teamA.name}</strong><br>
+            Sơ đồ: ${formationA}<br>
+            Thể lực TB: ${avgStaminaA.toFixed(0)}/150<br>
+            Kỹ năng: ${(teamA.skill*100).toFixed(0)}%
+        </div>
+        <div style="margin:5px 0;border-top:1px solid #333;padding-top:5px">
+            <strong style="color:${teamB.color}">${teamB.name}</strong><br>
+            Sơ đồ: ${formationB}<br>
+            Thể lực TB: ${avgStaminaB.toFixed(0)}/150<br>
+            Kỹ năng: ${(teamB.skill*100).toFixed(0)}%
+        </div>
+        ${wingPlayActive?'<div style="color:#ffff00;margin-top:5px">⚡ ĐẢO CÁNH!</div>':''}
+        ${isResettingPositions?'<div style="color:#0ff;margin-top:5px">🔄 RESET VỊ TRÍ</div>':''}
+    `;
+}
+
+function updateMatch(){
+    if(matchState==="STOP")return;
+    
+    second++;
+    if(second>=60){
+        second=0;
+        minute++;
+    }
+    
+    if(matchState==="FIRST_HALF"&&minute*60+second>=halfTime){
+        matchState="SECOND_HALF";
+        minute=0;
+        second=0;
+    }
+    
+    if(matchState==="SECOND_HALF"&&minute*60+second>=halfTime){
+        if(scoreA===scoreB){
+            if(currentRound==="group"){
+                endMatch();
+            }else{
+                matchState="EXTRA1";
+                minute=0;
+                second=0;
+            }
+        }else{
+            endMatch();
+        }
+    }
+    
+    if(matchState==="EXTRA1"&&minute*60+second>=extraTime/2){
+        matchState="EXTRA2";
+        minute=0;
+        second=0;
+    }
+    
+    if(matchState==="EXTRA2"&&minute*60+second>=extraTime/2){
+        if(scoreA===scoreB){
+            matchState="PENALTY";
+            minute=0;
+            second=0;
+        }else{
+            endMatch();
+        }
+    }
+    
+    if(matchState==="PENALTY"){
+        if(second%2===0)penaltyShoot();
+    }
+    
+    let m=String(minute).padStart(2,"0");
+    let s=String(second).padStart(2,"0");
+    let state=matchState==="FIRST_HALF"?"HT1":matchState==="SECOND_HALF"?"HT2":
+              matchState==="EXTRA1"?"ET1":matchState==="EXTRA2"?"ET2":"PEN";
+    
+    document.getElementById("scoreboard").innerText=
+        `⏱ ${m}:${s} [${state}] | ${teamA.name} ${scoreA} - ${scoreB} ${teamB.name}`+
+        (matchState==="PENALTY"?` | Pen ${penaltyA}-${penaltyB}`:"");
+    
+    if(second%3===0)updateTacticsDisplay();
+}
+
+function penaltyShoot(){
+    if(penaltyRound>=5&&penaltyA!==penaltyB){
+        endMatch();
+        return;
+    }
+    
+    if(Math.random()>0.3){
+        if(penaltyTurn==="A")penaltyA++;
+        else penaltyB++;
+    }
+    
+    penaltyTurn=penaltyTurn==="A"?"B":"A";
+    if(penaltyTurn==="A")penaltyRound++;
+    
+    if(penaltyRound>5&&penaltyA!==penaltyB)endMatch();
+}
+
+function endMatch(){
+    matchState="STOP";
+    
+    let winner=null;
+    
+    if(currentRound==="group"){
+        if(scoreA>scoreB){
+            teamA.wins++;
+            teamA.points+=3;
+            teamB.losses++;
+            winner=teamA;
+        }else if(scoreB>scoreA){
+            teamB.wins++;
+            teamB.points+=3;
+            teamA.losses++;
+            winner=teamB;
+        }else{
+            teamA.draws++;
+            teamB.draws++;
+            teamA.points++;
+            teamB.points++;
+        }
+        
+        teamA.goalsFor+=scoreA;
+        teamA.goalsAgainst+=scoreB;
+        teamB.goalsFor+=scoreB;
+        teamB.goalsAgainst+=scoreA;
+    }else{
+        if(scoreA>scoreB)winner=teamA;
+        else if(scoreB>scoreA)winner=teamB;
+        else winner=penaltyA>penaltyB?teamA:teamB;
+    }
+    
+    matchHistory.push({
+        teamA:teamA.name,
+        teamB:teamB.name,
+        scoreA:scoreA,
+        scoreB:scoreB,
+        penA:penaltyA,
+        penB:penaltyB,
+        winner:winner?winner.name:null,
+        round:currentRound
+    });
+    
+    updateUI();
+    
+    if(upcomingSchedule.length>0){
+        document.getElementById("continueBtn").style.display="block";
+    }else{
+        setTimeout(()=>{
+            if(currentRound!=="final"){
+                startNextMatch();
+            }else{
+                alert(`🎉🏆 VÔ ĐỊCH GIẢI ĐẤU: ${winner.name} 🏆🎉`);
+            }
+        },2500);
+    }
+}
+
+function updateUI(){
+    let histDiv=document.getElementById("matchHistory");
+    histDiv.innerHTML="";
+    
+    let groupMatches=matchHistory.filter(m=>m.round.startsWith("Bảng"));
+    let knockoutMatches=matchHistory.filter(m=>!m.round.startsWith("Bảng"));
+    
+    if(groupMatches.length>0){
+        histDiv.innerHTML+=`<div class="group-header">VÒNG BẢNG</div>`;
+        groupMatches.slice(-10).forEach(m=>{
+            let div=document.createElement("div");
+            div.className="match-item";
+            div.style.borderColor=m.winner?"#4CAF50":"#888";
+            div.innerHTML=`
+                <div style="font-weight:bold;font-size:11px">${m.teamA} vs ${m.teamB}</div>
+                <div style="font-size:15px;margin:3px 0">
+                    <span class="${m.scoreA>m.scoreB?'match-winner':'match-loser'}">${m.scoreA}</span>
+                    -
+                    <span class="${m.scoreB>m.scoreA?'match-winner':'match-loser'}">${m.scoreB}</span>
+                    ${m.penA>0||m.penB>0?`(P ${m.penA}-${m.penB})`:""}
+                </div>
+                <div style="font-size:10px;color:#888">${m.round}</div>
+            `;
+            histDiv.appendChild(div);
+        });
+    }
+    
+    if(knockoutMatches.length>0){
+        histDiv.innerHTML+=`<div class="knockout-header">LOẠI TRỰC TIẾP</div>`;
+        knockoutMatches.forEach(m=>{
+            let div=document.createElement("div");
+            div.className="match-item";
+            div.style.borderColor="#ff4444";
+            div.innerHTML=`
+                <div style="font-weight:bold;font-size:11px">${m.teamA} vs ${m.teamB}</div>
+                <div style="font-size:15px;margin:3px 0">
+                    <span class="${m.scoreA>m.scoreB||(m.scoreA===m.scoreB&&m.penA>m.penB)?'match-winner':'match-loser'}">${m.scoreA}</span>
+                    -
+                    <span class="${m.scoreB>m.scoreA||(m.scoreA===m.scoreB&&m.penB>m.penA)?'match-winner':'match-loser'}">${m.scoreB}</span>
+                    ${m.penA>0||m.penB>0?`(P ${m.penA}-${m.penB})`:""}
+                </div>
+                <div style="font-size:10px;color:#888">${m.round}</div>
+                ${m.winner?`<div style="color:#4CAF50;font-size:11px">🏆 ${m.winner}</div>`:""}
+            `;
+            histDiv.appendChild(div);
+        });
+    }
+    
+    let upDiv=document.getElementById("upcomingMatches");
+    upDiv.innerHTML="";
+    
+    if(upcomingSchedule.length>0){
+        upcomingSchedule.slice(0,8).forEach((m,i)=>{
+            let div=document.createElement("div");
+            div.className=i===0?"upcoming-match":"match-item";
+            div.style.borderColor="#4CAF50";
+            div.innerHTML=`
+                <div style="font-weight:bold;font-size:12px">${m.teamA.name} vs ${m.teamB.name}</div>
+                <div style="font-size:10px;color:#aaa;margin-top:2px">${m.round}</div>
+            `;
+            upDiv.appendChild(div);
+        });
+        
+        if(upcomingSchedule.length>8){
+            upDiv.innerHTML+=`<div style="color:#888;padding:8px;font-size:11px">...và ${upcomingSchedule.length-8} trận nữa</div>`;
+        }
+    }else{
+        upDiv.innerHTML=`<div style="color:#888;padding:15px;font-size:12px">Không có trận đấu</div>`;
+    }
+}
+
+function gameLoop(){
+    drawField();
+    
+    if(matchState!=="STOP"){
+        handlePossession();
+        
+        [...playersA,...playersB].forEach(p=>{
+            p.update();
+            p.draw();
+        });
+    }
+    
+    if(ball){
+        ball.update();
+        ball.draw();
+    }
+    
+    requestAnimationFrame(gameLoop);
+}
+
+setInterval(updateMatch,1000);
+gameLoop();
+</script>
+</body>
+</html>
