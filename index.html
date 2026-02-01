@@ -265,9 +265,56 @@ let badPassIndicator=null,badPassTimer=0;
 // Tactical variables
 let formationA="4-4-2",formationB="4-4-2";
 let wingPlayActive=false,wingPlayTimer=0;
+let looseBallChasers={A:null,B:null};
+let looseBallActive=false;
 
 function randomColor(){
     return `hsl(${Math.random()*360},75%,55%)`;
+}
+
+function clamp(value,min,max){
+    return Math.max(min,Math.min(max,value));
+}
+
+function getScoreDiff(team){
+    return team==="A"?scoreA-scoreB:scoreB-scoreA;
+}
+
+function getMatchContext(team){
+    let diff=getScoreDiff(team);
+    let chasing=diff<0;
+    let leading=diff>0;
+    let pressFactor=chasing?1.22:(leading?0.88:1);
+    let riskFactor=chasing?1.18:(leading?0.92:1);
+    let timeFactor=minute>70?1.15:(minute>40?1.05:1);
+    return {
+        chasing,
+        leading,
+        pressFactor:pressFactor*timeFactor,
+        riskFactor:riskFactor*timeFactor
+    };
+}
+
+function getTeamPlayers(team){
+    return team==="A"?playersA:playersB;
+}
+
+function getOpponents(team){
+    return team==="A"?playersB:playersA;
+}
+
+function getNearestPlayerToBall(team){
+    let players=getTeamPlayers(team).filter(p=>p.role!=="GK");
+    let nearest=null;
+    let minDist=Infinity;
+    players.forEach(p=>{
+        let dist=Math.hypot(p.x-ball.x,p.y-ball.y);
+        if(dist<minDist){
+            minDist=dist;
+            nearest=p;
+        }
+    });
+    return {player:nearest,dist:minDist};
 }
 
 function setupTeams(){
@@ -361,6 +408,10 @@ class Player{
         this.positioning=Math.random()*0.7+0.3;
         this.wingPlay=position==="LW"||position==="RW";
         this.defensive=role==="DF";
+        this.shootBias=Math.random()*0.8+0.2;
+        this.passBias=Math.random()*0.8+0.2;
+        this.positionDiscipline=Math.random()*0.7+0.3;
+        this.workRate=Math.random()*0.7+0.3;
         
         // Marking
         this.markedPlayer=null;
@@ -508,6 +559,7 @@ class Player{
             if(this===controllingPlayer){
                 let gx=this.team==="A"?FIELD_WIDTH:0;
                 let gy=FIELD_HEIGHT/2;
+                let context=getMatchContext(this.team);
                 
                 let opps=this.team==="A"?playersB:playersA;
                 let nearest=null,minD=Infinity;
@@ -518,23 +570,25 @@ class Player{
                 }
                 
                 if(nearest&&minD<100){
-                    if(Math.random()<this.skill*0.4){
-                        let ang=Math.atan2(nearest.y-this.y,nearest.x-this.x);
-                        tx=this.x+Math.cos(ang+Math.PI/2)*65;
-                        ty=this.y+Math.sin(ang+Math.PI/2)*65;
-                        this.activateSprint();
-                    }else{
-                        tx=gx;
-                        ty=gy+(Math.random()-0.5)*180;
-                    }
+                    let ang=Math.atan2(nearest.y-this.y,nearest.x-this.x);
+                    let toGoal=Math.atan2(gy-this.y,gx-this.x);
+                    let away=ang+Math.PI;
+                    let evadeBias=(away-toGoal)*0.6;
+                    let feint=(Math.random()-0.5)*0.9;
+                    let dribbleAngle=toGoal+evadeBias+feint;
+                    let dribbleDist=90+this.skill*70;
+                    tx=this.x+Math.cos(dribbleAngle)*dribbleDist;
+                    ty=this.y+Math.sin(dribbleAngle)*dribbleDist;
+                    if(Math.random()<this.skill*0.55)this.activateSprint();
                 }else{
                     let upperOpps=opps.filter(o=>Math.abs(o.x-this.x)<220&&o.y<this.y).length;
                     let lowerOpps=opps.filter(o=>Math.abs(o.x-this.x)<220&&o.y>this.y).length;
                     let openBias=(upperOpps-lowerOpps)*25;
                     openBias=Math.max(-90,Math.min(90,openBias));
-                    tx=gx;
-                    ty=gy+openBias+(Math.random()-0.5)*140;
-                    if(minD>130&&Math.random()<0.25)this.activateSprint();
+                    let laneAngle=Math.atan2((gy+openBias)-this.y,gx-this.x);
+                    tx=this.x+Math.cos(laneAngle)*140;
+                    ty=this.y+Math.sin(laneAngle)*140;
+                    if(minD>130&&Math.random()<0.25*context.riskFactor)this.activateSprint();
                 }
             }else{
                 // Teammates positioning - CẢI THIỆN ĐỂ GIÃN RA
@@ -608,12 +662,86 @@ class Player{
                 }
             }
         }else{
-            tx=ball.x;
-            ty=ball.y;
+            let context=getMatchContext(this.team);
+            let teammates=getTeamPlayers(this.team).filter(p=>p.role!=="GK");
+            let opps=getOpponents(this.team);
+            
+            let nearestTeammate=teammates.reduce((best,p)=>{
+                let dist=Math.hypot(p.x-ball.x,p.y-ball.y);
+                if(!best||dist<best.dist)return {player:p,dist};
+                return best;
+            },null);
+            
+            let secondNearest=teammates
+                .map(p=>({player:p,dist:Math.hypot(p.x-ball.x,p.y-ball.y)}))
+                .sort((a,b)=>a.dist-b.dist)[1];
             
             let d=Math.hypot(ball.x-this.x,ball.y-this.y);
+            let staminaFactor=this.stamina/this.maxStamina;
+            let pressDrive=this.aggression*0.6+this.workRate*0.4;
+            let pressThreshold=clamp(0.4+pressDrive*0.6,0.4,0.95);
+            let shouldPress=Math.random()<pressThreshold*context.pressFactor*staminaFactor;
+            if(looseBallActive){
+                shouldPress=looseBallChasers[this.team]===this;
+            }
             
-            if(d<140&&Math.random()<this.aggression*0.6&&this.stamina>30){
+            if(nearestTeammate&&nearestTeammate.player===this&&shouldPress){
+                let interceptX=ball.x+ball.vx*10;
+                let interceptY=ball.y+ball.vy*10;
+                if(looseBallActive){
+                    interceptX=ball.x;
+                    interceptY=ball.y;
+                }
+                if(looseBallActive&&d<6){
+                    interceptX=this.x;
+                    interceptY=this.y;
+                }
+                tx=interceptX;
+                ty=interceptY;
+                if(d<160&&Math.random()<0.55&&this.stamina>35)this.activateSprint();
+            }else if(!looseBallActive&&secondNearest&&secondNearest.player===this&&this.role!=="DF"){
+                let coverAngle=Math.atan2(ball.y-getGoalCenterY(),ball.x-getGoalX(this.team));
+                tx=ball.x+Math.cos(coverAngle)*80;
+                ty=ball.y+Math.sin(coverAngle)*80;
+            }else{
+                if(this.role==="DF"){
+                    let defLine=this.team==="A"?320:FIELD_WIDTH-320;
+                    let shift=(ball.y-FIELD_HEIGHT/2)*0.35;
+                    tx=defLine+clamp((ball.x-FIELD_WIDTH/2)*0.15,-70,70);
+                    ty=clamp(this.homeY+shift,80,FIELD_HEIGHT-80);
+                    
+                    let fwds=opps.filter(p=>p.role==="FW");
+                    if(fwds.length>0&&!this.markedPlayer){
+                        this.markedPlayer=fwds[Math.floor(Math.random()*fwds.length)];
+                    }
+                    if(this.markedPlayer&&Math.hypot(this.markedPlayer.x-this.x,this.markedPlayer.y-this.y)<260){
+                        tx=clamp(this.markedPlayer.x-(this.team==="A"?55:-55),120,FIELD_WIDTH-120);
+                        ty=clamp(this.markedPlayer.y,80,FIELD_HEIGHT-80);
+                    }
+                }else if(this.role==="MF"){
+                    let centerBias=this.positionDiscipline;
+                    let ballSide=(ball.y>FIELD_HEIGHT/2)?1:-1;
+                    tx=FIELD_WIDTH/2+(this.team==="A"?150:-150);
+                    ty=clamp(this.homeY+ballSide*70*(1-centerBias),90,FIELD_HEIGHT-90);
+                    if(d<220&&shouldPress){
+                        let pressAngle=Math.atan2(ball.y-this.y,ball.x-this.x);
+                        tx=ball.x+Math.cos(pressAngle)*60;
+                        ty=ball.y+Math.sin(pressAngle)*60;
+                    }
+                }else{
+                    let baseX=this.team==="A"?FIELD_WIDTH/2+160:FIELD_WIDTH/2-160;
+                    let baseY=FIELD_HEIGHT/2+(Math.random()-0.5)*220;
+                    if(context.chasing&&this.aggression>0.6&&staminaFactor>0.45){
+                        tx=ball.x;
+                        ty=ball.y+(Math.random()-0.5)*80;
+                    }else{
+                        tx=baseX;
+                        ty=baseY;
+                    }
+                }
+            }
+            
+            if(d<120&&Math.random()<this.aggression*0.7&&this.stamina>30){
                 if(this.defensive&&d<40&&controllingPlayer&&controllingPlayer.team!==this.team){
                     let result=this.slideTackle();
                     if(result==="foul"){
@@ -628,13 +756,12 @@ class Player{
                         createDefensiveWall();
                     }
                 }
-                if(d<180&&Math.random()<0.35&&this.stamina>40)this.activateSprint();
             }
             
             if(this.role==="DF"){
-                tx=this.team==="A"?Math.min(tx,FIELD_WIDTH/2):Math.max(tx,FIELD_WIDTH/2);
+                tx=this.team==="A"?Math.min(tx,FIELD_WIDTH/2+80):Math.max(tx,FIELD_WIDTH/2-80);
             }else if(this.role==="FW"){
-                tx=this.team==="A"?Math.max(tx,FIELD_WIDTH/2+100):Math.min(tx,FIELD_WIDTH/2-100);
+                tx=this.team==="A"?Math.max(tx,FIELD_WIDTH/2+60):Math.min(tx,FIELD_WIDTH/2-60);
             }
         }
         
@@ -1104,6 +1231,7 @@ function analyzeSituation(player){
     
     let opps=player.team==="A"?playersB:playersA;
     let mates=(player.team==="A"?playersA:playersB).filter(p=>p!==player&&p.role!=="GK");
+    let context=getMatchContext(player.team);
     
     // 1. PHÂN TÍCH ÁP LỰC TỪ ĐỐI THỦ
     let nearestOpp=null;
@@ -1138,13 +1266,15 @@ function analyzeSituation(player){
     let shouldClear=false;
     let shotQuality=calculateShotQuality(player,underPressure);
     let hasWideAngle=calculateShotAngle(ball.x,ball.y,player.team)>0.35;
+    let passDesire=player.passBias*(underPressure?1.1:0.95);
+    let shootDesire=player.shootBias*(context.riskFactor*1.05);
     
     // Tình huống BẮT BUỘC PHẢI CHUYỀN
     if(urgentPressure&&bestPassOption.safety>0.6){
         shouldPass=true;
     }
     // Đang bị áp lực và có lựa chọn an toàn
-    else if(underPressure&&bestPassOption.safety>0.5&&Math.random()<0.7){
+    else if(underPressure&&bestPassOption.safety>0.5&&Math.random()<0.55+passDesire*0.35){
         shouldPass=true;
     }
     // Trong vùng nguy hiểm (gần khung thành mình) - phải thoát bóng
@@ -1162,20 +1292,20 @@ function analyzeSituation(player){
         isWingPlay=true;
     }
     // Đường biên hoặc góc hẹp, ưu tiên căng ngang/chọc khe
-    else if(hasWideAngle===false&&bestPassOption.available&&Math.random()<0.6){
+    else if(hasWideAngle===false&&bestPassOption.available&&Math.random()<0.45+passDesire*0.4){
         shouldPass=true;
         isWingPlay=player.wingPlay;
     }
     // Có đồng đội ở vị trí tốt hơn để ghi bàn
-    else if(bestPassOption.betterShootingPos&&Math.random()<0.45){
+    else if(bestPassOption.betterShootingPos&&Math.random()<0.3+passDesire*0.35){
         shouldPass=true;
     }
     // Sút khi ở vị trí tốt và không bị áp lực
-    else if(inShootingZone&&shotQuality>0.45&&player.stamina>30&&Math.random()<shotQuality*0.6){
+    else if(inShootingZone&&shotQuality>0.4&&player.stamina>30&&Math.random()<shotQuality*(0.35+shootDesire*0.5)){
         shouldShoot=true;
     }
     // Chuyền ngẫu nhiên thấp khi không có tình huống đặc biệt
-    else if(!underPressure&&bestPassOption.available&&Math.random()<0.02){
+    else if(!underPressure&&bestPassOption.available&&Math.random()<0.01+passDesire*0.03){
         shouldPass=true;
     }
     
@@ -1431,6 +1561,17 @@ function handlePossession(){
         }
     }else{
         let ballSpd=Math.hypot(ball.vx,ball.vy);
+        looseBallActive=ballSpd<=1.2;
+        if(looseBallActive){
+            let nearestA=getNearestPlayerToBall("A");
+            let nearestB=getNearestPlayerToBall("B");
+            looseBallChasers={
+                A:nearestA.dist<260?nearestA.player:null,
+                B:nearestB.dist<260?nearestB.player:null
+            };
+        }else{
+            looseBallChasers={A:null,B:null};
+        }
         
         if(ballSpd>1.2){
             all.forEach(p=>{
@@ -1458,19 +1599,26 @@ function handlePossession(){
                 }
             });
         }else{
+            let closest=null;
+            let pickupRadius=18;
             all.forEach(p=>{
                 let d=Math.hypot(p.x-ball.x,p.y-ball.y);
-                if(d<13){
-                    controllingPlayer=p;
-                    lastTeam=p.team;
-                    lastTouch=p;
-                    if(setPlay){
-                        setPlay=null;
-                        setPlayRunner=null;
-                        setPlayReady=false;
-                    }
+                if(d<pickupRadius&&(!closest||d<closest.dist)){
+                    closest={player:p,dist:d};
                 }
             });
+            if(closest){
+                controllingPlayer=closest.player;
+                lastTeam=closest.player.team;
+                lastTouch=closest.player;
+                ball.vx=0;
+                ball.vy=0;
+                if(setPlay){
+                    setPlay=null;
+                    setPlayRunner=null;
+                    setPlayReady=false;
+                }
+            }
         }
     }
 }
